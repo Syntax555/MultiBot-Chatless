@@ -1468,6 +1468,7 @@ local ruRUValues = {
   -- MB_W3A_ADDON_FEEDBACK_I18N_V1_BEGIN
   ["w3a.feedback.follow"] = "[MultiBot] Следовать: обработано %d/%d ботов%s.",
   ["w3a.feedback.stay"] = "[MultiBot] Стоять: обработано %d/%d ботов%s.",
+  ["w3a.feedback.grind"] = "[MultiBot] Гринд: обработано %d/%d ботов%s.",
   ["w3a.feedback.release"] = "[MultiBot] Освобождение духа: обработано %d/%d ботов%s.",
   ["w3a.feedback.revive"] = "[MultiBot] Воскрешение: обработано %d/%d ботов%s.",
   ["w3a.feedback.summon"] = "[MultiBot] Призыв: обработано %d/%d ботов%s.",

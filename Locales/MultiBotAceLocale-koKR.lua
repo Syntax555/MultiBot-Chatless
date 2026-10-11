@@ -1459,6 +1459,7 @@ local koKRValues = {
   -- MB_W3A_ADDON_FEEDBACK_I18N_V1_BEGIN
   ["w3a.feedback.follow"] = "[MultiBot] 따라가기: %d/%d 봇 적용됨%s.",
   ["w3a.feedback.stay"] = "[MultiBot] 대기: %d/%d 봇 적용됨%s.",
+  ["w3a.feedback.grind"] = "[MultiBot] 그라인드: %d/%d 봇 적용됨%s.",
   ["w3a.feedback.release"] = "[MultiBot] 영혼 해제: %d/%d 봇 적용됨%s.",
   ["w3a.feedback.revive"] = "[MultiBot] 부활: %d/%d 봇 적용됨%s.",
   ["w3a.feedback.summon"] = "[MultiBot] 소환: %d/%d 봇 적용됨%s.",

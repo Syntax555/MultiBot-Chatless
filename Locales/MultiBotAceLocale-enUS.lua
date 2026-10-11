@@ -1473,6 +1473,7 @@ local enUSValues = {
   -- MB_W3A_ADDON_FEEDBACK_I18N_V1_BEGIN
   ["w3a.feedback.follow"] = "[MultiBot] Follow: %d/%d bot(s) accepted%s.",
   ["w3a.feedback.stay"] = "[MultiBot] Stay: %d/%d bot(s) accepted%s.",
+  ["w3a.feedback.grind"] = "[MultiBot] Grind: %d/%d bot(s) accepted%s.",
   ["w3a.feedback.release"] = "[MultiBot] Release: %d/%d bot(s) accepted%s.",
   ["w3a.feedback.revive"] = "[MultiBot] Revive: %d/%d bot(s) accepted%s.",
   ["w3a.feedback.summon"] = "[MultiBot] Summon: %d/%d bot(s) accepted%s.",

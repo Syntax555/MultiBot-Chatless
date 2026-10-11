@@ -48,6 +48,7 @@ local CAPABILITY_STATE_FIELDS = {
   [OUTFIT_CAPABILITY] = "outfitCapable",
   ["OUTFIT_FRAMING_V1"] = "outfitFramingCapable",
   [INVENTORY_CAPABILITY] = "inventoryCapable",
+  ["EQUIP_OBSERVE_V1"] = "equipObserveCapable",
   [INVENTORY_EXACT_CAPABILITY] = "inventoryExactCapable",
   [INVENTORY_ITEM_MOVE_CAPABILITY] = "inventoryItemMoveCapable",
   [INVENTORY_ITEM_TRADE_CAPABILITY] = "inventoryItemTradeCapable",
@@ -75,7 +76,9 @@ local CAPABILITY_STATE_FIELDS = {
   ["BOT_GROUP_LIFECYCLE_V1"] = "botGroupLifecycleCapable",
   ["CREATOR_ADDCLASS_V1"] = "creatorAddClassCapable",
   ["CREATOR_INIT_AUTO_V1"] = "creatorInitAutoCapable",
+  ["CREATOR_INIT_AUTO_FEEDBACK_V1"] = "creatorInitAutoFeedbackCapable",
   ["FLEE_ORDER_V1"] = "fleeOrderCapable",
+  ["GRIND_ORDER_V1"] = "grindOrderCapable",
   ["BOT_RESET_V1"] = "botResetCapable",
   ["GROUP_ACTION_V1"] = "groupActionCapable",
   ["FORMATION_V1"] = "formationCapable",
@@ -374,6 +377,11 @@ local function ensureBridgeState()
   state.outfitCapable = state.outfitCapable or false
   state.outfitFramingCapable = state.outfitFramingCapable or false
   state.inventoryCapable = state.inventoryCapable or false
+  state.equipObserveCapable = state.equipObserveCapable or false
+  state.equipObserveSequence = tonumber(state.equipObserveSequence) or 0
+  state.equipObserveRosterIndex = tonumber(state.equipObserveRosterIndex) or 0
+  state.equipObservePending = state.equipObservePending or nil
+  state.equipObserveScheduled = state.equipObserveScheduled == true
   state.inventoryExactCapable = state.inventoryExactCapable or false
   state.inventoryItemMoveCapable = state.inventoryItemMoveCapable or false
   state.inventoryItemTradeCapable = state.inventoryItemTradeCapable or false
@@ -400,7 +408,9 @@ local function ensureBridgeState()
   state.botGroupLifecycleCapable = state.botGroupLifecycleCapable or false
   state.creatorAddClassCapable = state.creatorAddClassCapable or false
   state.creatorInitAutoCapable = state.creatorInitAutoCapable or false
+  state.creatorInitAutoFeedbackCapable = state.creatorInitAutoFeedbackCapable or false
   state.fleeOrderCapable = state.fleeOrderCapable or false
+  state.grindOrderCapable = state.grindOrderCapable or false
   state.botResetCapable = state.botResetCapable or false
   state.groupActionCapable = state.groupActionCapable or false
   state.formationCapable = state.formationCapable or false
@@ -1437,6 +1447,8 @@ end
 -- MB_CREATOR_ADDCLASS_V1_END
 -- MB_CREATOR_INIT_AUTO_V1_BEGIN
 -- MB_CREATOR_INIT_AUTO_CHATLESS_FEEDBACK_V2_BEGIN
+local CREATOR_INIT_AUTO_WHISPER_TAIL_SECONDS = 8.0
+
 function Comm._CreatorInitAutoFeedbackBuildAllowedNames(mode, botName, state)
   state = type(state) == "table" and state or ensureBridgeState()
   local rosterNames = {}
@@ -1495,73 +1507,6 @@ function Comm._CreatorInitAutoFeedbackBuildAllowedNames(mode, botName, state)
   return allowedNames
 end
 
-function Comm._CreatorInitAutoFeedbackParts(message)
-  message = tostring(message or "")
-  if message == "" then
-    return nil, nil
-  end
-
-  local equipPrefix = "equipping "
-  local movePrefix = "Main hand upgrade found. Moving "
-  local lowered = string.lower(message)
-  local isEquip = string.sub(lowered, 1, string.len(equipPrefix)) == equipPrefix
-  local isMove = string.sub(message, 1, string.len(movePrefix)) == movePrefix
-  if not isEquip and not isMove then
-    return nil, nil
-  end
-
-  local itemMarker = string.find(message, "|Hitem:", 1, true)
-  if not itemMarker then
-    return nil, nil
-  end
-
-  local linkStart = itemMarker
-  local colorStart = nil
-  local searchAt = 1
-  while true do
-    local candidate = string.find(message, "|c", searchAt, true)
-    if not candidate or candidate > itemMarker then
-      break
-    end
-    colorStart = candidate
-    searchAt = candidate + 2
-  end
-  if colorStart then
-    linkStart = colorStart
-  end
-
-  local resetStart = string.find(message, "|r", itemMarker, true)
-  if not resetStart then
-    return nil, nil
-  end
-  local linkEnd = resetStart + 1
-
-  local before = string.sub(message, 1, linkStart - 1)
-  local after = string.sub(message, linkEnd + 1)
-  local itemLink = string.sub(message, linkStart, linkEnd)
-  if string.find(itemLink, "|Hitem:", 1, true) == nil then
-    return nil, nil
-  end
-
-  if isEquip then
-    if string.lower(before) ~= equipPrefix then
-      return nil, nil
-    end
-    if after ~= ""
-        and after ~= " in ranged slot"
-        and after ~= " in main hand"
-        and after ~= " in offhand" then
-      return nil, nil
-    end
-    return "EQUIP", itemLink
-  end
-
-  if before ~= movePrefix or after ~= " to offhand" then
-    return nil, nil
-  end
-  return "MOVE", itemLink
-end
-
 function Comm._FlushCreatorInitAutoFeedbackSession(token, state)
   state = type(state) == "table" and state or ensureBridgeState()
   local sessions = state.creatorInitAutoFeedbackSessions
@@ -1572,6 +1517,32 @@ function Comm._FlushCreatorInitAutoFeedbackSession(token, state)
   local session = sessions[token]
   if type(session) ~= "table" then
     return
+  end
+
+  -- Keep only a brief, per-bot mask after the structured SYSTEM summary.
+  -- This does not capture WHISPERs or populate the feedback: it merely hides
+  -- late technical EquipAction messages from bots in this Creator session.
+  if session.structuredFeedback == true then
+    local now = safeNow()
+    if now > 0 then
+      local recent = type(state.creatorInitAutoWhisperMaskUntilByBot) == "table"
+          and state.creatorInitAutoWhisperMaskUntilByBot or {}
+      local expiresAt = now + CREATOR_INIT_AUTO_WHISPER_TAIL_SECONDS
+
+      -- Prune expired entries on every Creator flush to avoid stale bot keys.
+      for botKey, untilAt in pairs(recent) do
+        if type(untilAt) ~= "number" or untilAt <= now then
+          recent[botKey] = nil
+        end
+      end
+
+      for botKey in pairs(session.allowedNames or {}) do
+        if type(botKey) == "string" and botKey ~= "" then
+          recent[botKey] = math.max(tonumber(recent[botKey]) or 0, expiresAt)
+        end
+      end
+      state.creatorInitAutoWhisperMaskUntilByBot = recent
+    end
   end
 
   sessions[token] = nil
@@ -1685,10 +1656,11 @@ function Comm._StartCreatorInitAutoFeedbackSession(token, mode, botName, state)
     flushEpoch = 0,
     allowedNames = allowedNames,
     itemsByBot = {},
+    structuredFeedback = state.creatorInitAutoFeedbackCapable == true,
   }
   state.creatorInitAutoFeedbackSessions[token] = session
 
-  if type(Comm._ArmFleeWhisperFilter) == "function" then
+  if session.structuredFeedback == true and type(Comm._ArmFleeWhisperFilter) == "function" then
     Comm._ArmFleeWhisperFilter()
   end
 
@@ -1706,64 +1678,118 @@ function Comm._StartCreatorInitAutoFeedbackSession(token, mode, botName, state)
   return true
 end
 
-function Comm._CreatorInitAutoFeedbackSessionForBot(displayName, state)
-  state = type(state) == "table" and state or ensureBridgeState()
-  local sessions = state.creatorInitAutoFeedbackSessions
-  if type(sessions) ~= "table" then
-    return nil
+function Comm._SuppressCreatorInitAutoTechnicalWhisper(message, sender, state)
+  if type(state) ~= "table" or state.creatorInitAutoFeedbackCapable ~= true
+      or type(message) ~= "string" then
+    return false
   end
 
-  local botKey = Comm._NormalizeFleeWhisperName(displayName)
+  -- Only the known technical EquipAction message shapes are eligible.
+  local lowerMessage = string.lower(message)
+  local equipPrefix = "equipping "
+  local movePrefix = "main hand upgrade found. moving "
+  local isEquip = string.sub(lowerMessage, 1, #equipPrefix) == equipPrefix
+  local isMove = string.sub(lowerMessage, 1, #movePrefix) == movePrefix
+  if not isEquip and not isMove then
+    return false
+  end
+
+  local itemMarker = string.find(message, "|Hitem:", 1, true)
+  local linkStart = itemMarker and string.find(message, "|h", itemMarker, true) or nil
+  if not linkStart then
+    return false
+  end
+
+  local resetStart = string.find(message, "|r", linkStart, true)
+  local secondLinkEnd = string.find(message, "|h", linkStart + 2, true)
+  local suffixStart = resetStart and (resetStart + 2)
+      or (secondLinkEnd and (secondLinkEnd + 2))
+  if not suffixStart then
+    return false
+  end
+
+  local suffix = string.lower(trim(string.sub(message, suffixStart)))
+  if isEquip then
+    if suffix ~= "" and suffix ~= "in ranged slot"
+        and suffix ~= "in main hand" and suffix ~= "in offhand" then
+      return false
+    end
+  elseif suffix ~= "to offhand" then
+    return false
+  end
+
+  local botKey = Comm._NormalizeFleeWhisperName(sender)
   if botKey == "" then
-    return nil
+    return false
   end
 
-  local matched = nil
-  for _, session in pairs(sessions) do
-    if type(session) == "table"
-        and type(session.allowedNames) == "table"
-        and session.allowedNames[botKey] then
-      if matched ~= nil then
-        return nil
+  local sessions = state.creatorInitAutoFeedbackSessions
+  if type(sessions) == "table" then
+    for _, session in pairs(sessions) do
+      if type(session) == "table" and session.structuredFeedback == true
+          and type(session.allowedNames) == "table" and session.allowedNames[botKey] then
+        return true
       end
-      matched = session
     end
   end
-  return matched
+
+  -- A bounded 8-second tail covers late WHISPER events after the result/flush.
+  local recent = state.creatorInitAutoWhisperMaskUntilByBot
+  if type(recent) ~= "table" then
+    return false
+  end
+  local expiresAt = tonumber(recent[botKey]) or 0
+  local now = safeNow()
+  if now > 0 and expiresAt > now then
+    return true
+  end
+  recent[botKey] = nil
+  return false
 end
 
-function Comm._CaptureCreatorInitAutoWhisper(message, sender, state)
-  local action, itemLink = Comm._CreatorInitAutoFeedbackParts(message)
-  if action == nil then
-    return false
+-- MB_CREATOR_INIT_AUTO_CHATLESS_FEEDBACK_V2_END
+-- MB_CREATOR_INIT_AUTO_FEEDBACK_V1_BEGIN
+function Comm.ApplyCreatorInitAutoFeedbackItemPayload(payload, state)
+  state = type(state) == "table" and state or ensureBridgeState()
+  if state.creatorInitAutoFeedbackCapable ~= true then
+    return true
   end
 
-  local displayName = Comm._BridgeRosterBotDisplayName(sender, state)
+  local fields = splitFields(payload or "")
+  if #fields ~= 4 then
+    state.lastError = "CREATOR_INIT_AUTO_FEEDBACK_BAD_FIELD_COUNT"
+    return true
+  end
+
+  local token = trim(fields[1])
+  local botName = urlDecodeFieldStrict(fields[2], 64, false)
+  local kind = string.upper(trim(fields[3]))
+  local itemLink = urlDecodeFieldStrict(fields[4], 192, false)
+
+  if not isValidStateToken(token)
+      or not botName or botName == ""
+      or (kind ~= "EQUIP" and kind ~= "BAG" and kind ~= "AMMO")
+      or not itemLink or itemLink == ""
+      or string.find(itemLink, "|Hitem:", 1, true) == nil
+      or string.find(itemLink, "|h", 1, true) == nil then
+    state.lastError = "CREATOR_INIT_AUTO_FEEDBACK_BAD_ITEM"
+    return true
+  end
+
+  local sessions = state.creatorInitAutoFeedbackSessions
+  local session = type(sessions) == "table" and sessions[token] or nil
+  if type(session) ~= "table" or session.structuredFeedback ~= true then
+    return true
+  end
+
+  local botKey = Comm._NormalizeFleeWhisperName(botName)
+  local displayName = botKey ~= ""
+      and type(session.allowedNames) == "table"
+      and session.allowedNames[botKey]
+      or nil
   if not displayName then
-    return false
-  end
-
-  local session = Comm._CreatorInitAutoFeedbackSessionForBot(displayName, state)
-  if type(session) ~= "table" then
-    return false
-  end
-
-  local dedupeKey = displayName .. "\031" .. tostring(message or "")
-  local now = safeNow()
-  if session.feedbackLastKey == dedupeKey
-      and now - (tonumber(session.feedbackLastAt) or 0) <= 0.25 then
+    state.lastError = "CREATOR_INIT_AUTO_FEEDBACK_BAD_BOT"
     return true
-  end
-  session.feedbackLastKey = dedupeKey
-  session.feedbackLastAt = now
-
-  if action == "MOVE" then
-    return true
-  end
-
-  local botKey = Comm._NormalizeFleeWhisperName(displayName)
-  if botKey == "" then
-    return false
   end
 
   session.itemsByBot = type(session.itemsByBot) == "table" and session.itemsByBot or {}
@@ -1776,19 +1802,19 @@ function Comm._CaptureCreatorInitAutoWhisper(message, sender, state)
     session.itemsByBot[botKey] = entry
   end
 
-  if type(entry.items) ~= "table" then
-    entry.items = {}
-  end
-  if #entry.items < 40 then
-    entry.items[#entry.items + 1] = itemLink
+  entry.items = type(entry.items) == "table" and entry.items or {}
+  if #entry.items >= 40 then
+    state.lastError = "CREATOR_INIT_AUTO_FEEDBACK_ITEM_LIMIT"
+    return true
   end
 
+  entry.items[#entry.items + 1] = itemLink
   if session.completed == true then
     Comm._ScheduleCreatorInitAutoFeedbackFlush(session.token, state, 1.5)
   end
   return true
 end
--- MB_CREATOR_INIT_AUTO_CHATLESS_FEEDBACK_V2_END
+-- MB_CREATOR_INIT_AUTO_FEEDBACK_V1_END
 
 function Comm.RunCreatorInitAuto(mode, botName)
   local state = ensureBridgeState()
@@ -2201,6 +2227,8 @@ function Comm.HandleAltBotLifecycleAddonMessage(opcode, payload, state)
     return Comm.ApplyBotGroupLifecycleResultPayload(payload, state)
   elseif opcode == "CREATOR_ADDCLASS" then
     return Comm.ApplyCreatorAddClassResultPayload(payload, state)
+  elseif opcode == "CREATOR_INIT_AUTO_ITEM" then
+    return Comm.ApplyCreatorInitAutoFeedbackItemPayload(payload, state)
   elseif opcode == "CREATOR_INIT_AUTO" then
     return Comm.ApplyCreatorInitAutoResultPayload(payload, state)
   end
@@ -3271,8 +3299,12 @@ function Comm.RunGroupOrderCommand(order, callback)
   end
 
   order = string.upper(trim(order or ""))
-  if order ~= "FOLLOW" and order ~= "STAY" then
+  if order ~= "FOLLOW" and order ~= "STAY" and order ~= "GRIND" then
     state.lastError = "GROUP_ORDER_INVALID"
+    return false
+  end
+  if order == "GRIND" and state.grindOrderCapable ~= true then
+    state.lastError = "GRIND_ORDER_CAPABILITY_UNAVAILABLE"
     return false
   end
 
@@ -4219,11 +4251,11 @@ function Comm._FleeWhisperFilter(_, event, message, sender)
     return true
   end
 
-  local questBotDisplayName = Comm._BridgeRosterBotDisplayName(sender, state)
-  if Comm._CaptureCreatorInitAutoWhisper(message, sender, state) then
+  if Comm._SuppressCreatorInitAutoTechnicalWhisper(message, sender, state) then
     return true
   end
 
+  local questBotDisplayName = Comm._BridgeRosterBotDisplayName(sender, state)
   if questBotDisplayName and Comm._ShowQuestFeedbackMessage(message, questBotDisplayName) then
     return true
   end
@@ -8925,8 +8957,12 @@ function Comm.MarkDisconnected(reason)
   state.autogearOptionsCapable = false
   if MultiBot.Autogear then MultiBot.Autogear.OnDisconnect() end
   state.connectionGeneration = state.connectionGeneration + 1
+  state.equipObserveCapable = false
+  state.equipObserveScheduled = false
+  state.equipObservePending = nil
   state.connected = false
   state.fleeOrderCapable = false
+  state.grindOrderCapable = false
   state.server = nil
   state.protocol = nil
   state.lastError = reason or nil
@@ -9488,6 +9524,137 @@ local function parseRosterEntry(entry)
   }
 end
 
+-- MB_INVENTORY_H1B1A_EQUIP_OBSERVE_V1_BEGIN
+-- Native Playerbots equipment polling through Bridge; no WHISPER parsing.
+function Comm._StartEquipObserveTicker()
+  local bridge = ensureBridgeState()
+  if bridge.equipObserveScheduled == true or type(MultiBot.TimerAfter) ~= "function" then
+    return
+  end
+  bridge.equipObserveScheduled = true
+  local generation = bridge.connectionGeneration
+
+  local function tick()
+    local state = ensureBridgeState()
+    if state.connectionGeneration ~= generation then
+      return
+    end
+
+    if state.connected == true and state.equipObserveCapable == true then
+      local pending = state.equipObservePending
+      if pending and safeNow() - (tonumber(pending.startedAt) or 0) >= 6.0 then
+        state.equipObservePending = nil
+        pending = nil
+      end
+
+      if not pending then
+        local roster = state.roster or {}
+        local size = #roster
+        for i = 1, size do
+          state.equipObserveRosterIndex = (state.equipObserveRosterIndex % size) + 1
+          local entry = roster[state.equipObserveRosterIndex]
+          local name = type(entry) == "table" and trim(entry.name) or ""
+          if name ~= "" and #name <= 64 then
+            state.equipObserveSequence = (state.equipObserveSequence % 1000000) + 1
+            local token = tostring(math.floor(safeNow() * 1000)) .. "-" .. tostring(state.equipObserveSequence)
+            state.equipObservePending = {
+              name = name, key = string.lower(name), token = token,
+              startedAt = safeNow(), items = {}
+            }
+            if not Comm.Send("GET", "EQUIP_OBSERVE~" .. urlEncodeField(name) .. "~" .. token) then
+              state.equipObservePending = nil
+            end
+            break
+          end
+        end
+      end
+    end
+
+    MultiBot.TimerAfter(1.5, tick)
+  end
+
+  MultiBot.TimerAfter(1.5, tick)
+end
+
+function Comm._HandleEquipObservePacket(opcode, payload, state)
+  if opcode ~= "EQUIP_OBSERVE_ITEM" and opcode ~= "EQUIP_OBSERVE_DONE" then
+    return false
+  end
+
+  local parts = splitFields(payload or "")
+  local name = urlDecodeFieldStrict(parts[1], 64, false)
+  local token = trim(parts[2])
+  local pending = state.equipObservePending
+  if not pending or not name or token ~= pending.token or
+      string.lower(name) ~= pending.key then
+    return true
+  end
+
+  if opcode == "EQUIP_OBSERVE_ITEM" then
+    if #parts ~= 5 or #pending.items >= 19 then
+      return true
+    end
+    local slot = parseBoundedInteger(parts[3], 0, 18)
+    local oldId = parseBoundedInteger(parts[4], 0, 4294967295)
+    local newId = parseBoundedInteger(parts[5], 0, 4294967295)
+    if slot ~= nil and oldId ~= nil and newId ~= nil then
+      pending.items[#pending.items + 1] = {slot = slot, oldId = oldId, newId = newId}
+    end
+    return true
+  end
+
+  if #parts ~= 3 then
+    return true
+  end
+  local status = parts[3]
+  state.equipObservePending = nil
+  if status ~= "OK" or #pending.items == 0 then
+    return true
+  end
+
+  local equipped, removed = {}, {}
+  local function itemDisplay(itemId)
+    if type(GetItemInfo) == "function" then
+      local _, link = GetItemInfo(itemId)
+      if type(link) == "string" and link ~= "" then
+        return link
+      end
+    end
+    return "#" .. tostring(itemId)
+  end
+
+  for _, change in ipairs(pending.items) do
+    if change.newId > 0 then
+      equipped[#equipped + 1] = itemDisplay(change.newId)
+    elseif change.oldId > 0 then
+      removed[#removed + 1] = itemDisplay(change.oldId)
+    end
+  end
+
+  if #equipped > 0 then
+    Comm.ShowSystemMessage(string.format(
+      L("creator.init_auto.feedback.equipped", "[MultiBot] %s equips: %s"),
+      pending.name, table.concat(equipped, ", ")))
+  end
+  if #removed > 0 then
+    Comm.ShowSystemMessage(string.format(
+      L("inventory.equip_observe.unequipped", "[MultiBot] %s déséquipe : %s"),
+      pending.name, table.concat(removed, ", ")))
+  end
+
+  -- Refresh only if the bot's inventory window is actually visible.
+  local inventory = MultiBot and MultiBot.inventory or nil
+  if inventory and type(inventory.IsVisible) == "function" and inventory:IsVisible()
+      and string.lower(trim(inventory.name)) == pending.key then
+    if MultiBot.RequestInventoryRefresh then
+      MultiBot.RequestInventoryRefresh(pending.name, 0.30)
+    end
+  end
+  debugPrint("ADDON:RX", "EQUIP_OBSERVE_CHANGED", pending.name, tostring(#pending.items))
+  return true
+end
+-- MB_INVENTORY_H1B1A_EQUIP_OBSERVE_V1_END
+
 function Comm.ApplyRosterPayload(payload)
   local state = ensureBridgeState()
   local roster = {}
@@ -9499,6 +9666,8 @@ function Comm.ApplyRosterPayload(payload)
   end
 
   state.roster = roster
+
+  Comm._StartEquipObserveTicker()
 
   if MultiBot.SyncBridgeRosterToPlayers then
     MultiBot.SyncBridgeRosterToPlayers(roster)
@@ -12787,6 +12956,10 @@ function Comm.HandleAddonMessage(prefix, message, distribution, sender)
   local opcode, payload = splitOnce(message or "", "~")
   opcode = string.upper(trim(opcode))
 
+  if Comm._HandleEquipObservePacket(opcode, payload, state) then
+    return true
+  end
+
   if opcode ~= "CAPS" and opcode ~= "CAPS_BEGIN" and opcode ~= "CAPS_END" then
     maybeResolveCapabilityFallback(state.connectionGeneration)
   end
@@ -14856,7 +15029,7 @@ function Comm.HandleAddonMessage(prefix, message, distribution, sender)
   end
   -- MB_HUNTER_PET_MANAGE_V1_RX_END
   -- MB_FOLLOW_STAY_ORDER_V1_RX_BEGIN
-  if opcode == "FOLLOW_ORDER_ACK" or opcode == "STAY_ORDER_ACK" then
+  if opcode == "FOLLOW_ORDER_ACK" or opcode == "STAY_ORDER_ACK" or opcode == "GRIND_ORDER_ACK" then
     local fields = splitFields(payload or "")
     if #fields ~= 5 then
       state.lastError = "GROUP_ORDER_ACK_BAD_FIELD_COUNT"
@@ -14868,7 +15041,12 @@ function Comm.HandleAddonMessage(prefix, message, distribution, sender)
     local succeeded = tonumber(fields[3])
     local failed = tonumber(fields[4])
     local reason = fields[5]
-    local order = opcode == "FOLLOW_ORDER_ACK" and "FOLLOW" or "STAY"
+    local order = "STAY"
+    if opcode == "FOLLOW_ORDER_ACK" then
+      order = "FOLLOW"
+    elseif opcode == "GRIND_ORDER_ACK" then
+      order = "GRIND"
+    end
     state.groupOrderCommands = state.groupOrderCommands or {}
     local pending = state.groupOrderCommands[token]
 
@@ -14893,7 +15071,13 @@ function Comm.HandleAddonMessage(prefix, message, distribution, sender)
     state.connected = true
     state.lastError = reason == "OK" and nil or ("GROUP_ORDER_" .. reason)
     debugPrint("ADDON:RX", opcode, payload or "")
-    Comm._ShowW3ASummary(order == "FOLLOW" and "w3a.feedback.follow" or "w3a.feedback.stay", matched, succeeded, reason)
+    local feedbackKey = "w3a.feedback.stay"
+    if order == "FOLLOW" then
+      feedbackKey = "w3a.feedback.follow"
+    elseif order == "GRIND" then
+      feedbackKey = "w3a.feedback.grind"
+    end
+    Comm._ShowW3ASummary(feedbackKey, matched, succeeded, reason)
 
     local status = "failed"
     if matched == 0 then

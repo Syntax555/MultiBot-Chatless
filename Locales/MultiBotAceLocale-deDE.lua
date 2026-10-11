@@ -1470,6 +1470,7 @@ local deDEValues = {
   -- MB_W3A_ADDON_FEEDBACK_I18N_V1_BEGIN
   ["w3a.feedback.follow"] = "[MultiBot] Folgen: %d/%d Bot(s) berücksichtigt%s.",
   ["w3a.feedback.stay"] = "[MultiBot] Bleiben: %d/%d Bot(s) berücksichtigt%s.",
+  ["w3a.feedback.grind"] = "[MultiBot] Grinden: %d/%d Bot(s) berücksichtigt%s.",
   ["w3a.feedback.release"] = "[MultiBot] Geist freigeben: %d/%d Bot(s) berücksichtigt%s.",
   ["w3a.feedback.revive"] = "[MultiBot] Wiederbeleben: %d/%d Bot(s) berücksichtigt%s.",
   ["w3a.feedback.summon"] = "[MultiBot] Beschwören: %d/%d Bot(s) berücksichtigt%s.",

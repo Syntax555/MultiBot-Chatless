@@ -593,7 +593,8 @@ local function _mbRefreshStrategyState(commandScope, target)
 	end
 end
 
-local function _mbRouteStrategyMutation(action, commandScope, target)
+-- MB_STRATEGY_MUTATION_CALLBACK_V1_BEGIN
+local function _mbRouteStrategyMutation(action, commandScope, target, onComplete)
 	local mutationScope, changes = _mbParseStrategyMutation(action)
 	if(not mutationScope) then return MB_STRATEGY_ROUTE_NOT_STRATEGY end
 
@@ -611,6 +612,9 @@ local function _mbRouteStrategyMutation(action, commandScope, target)
 		if(type(result) ~= "table") then
 			_mbWarnStrategyMutationBlocked(commandScope, target, "STRATEGY_INVALID_RESULT")
 			_mbRefreshStrategyState(commandScope, target)
+			if(type(onComplete) == "function") then
+				onComplete(result)
+			end
 			return
 		end
 
@@ -623,6 +627,10 @@ local function _mbRouteStrategyMutation(action, commandScope, target)
 		end
 
 		_mbRefreshStrategyState(commandScope, target)
+
+		if(type(onComplete) == "function") then
+			onComplete(result)
+		end
 	end)
 
 	if(token ~= false and token ~= nil) then
@@ -633,6 +641,7 @@ local function _mbRouteStrategyMutation(action, commandScope, target)
 	_mbRefreshStrategyState(commandScope, target)
 	return MB_STRATEGY_ROUTE_BLOCKED
 end
+-- MB_STRATEGY_MUTATION_CALLBACK_V1_END
 
 local function _mbCanUseBridgeSelfStrategyMutation()
 	return MultiBot.bridge
@@ -882,6 +891,25 @@ MultiBot.ActionToGroup = function(pAction, onComplete)
 		return false, "blocked"
 	end
 	-- MB_FOLLOW_STAY_ORDER_V1_ROUTE_END
+
+	-- MB_GRIND_ORDER_V1_ROUTE_BEGIN
+	if(normalizedGroupOrder == "grind") then
+		if(MultiBot.bridge
+			and MultiBot.bridge.connected == true
+			and MultiBot.bridge.grindOrderCapable == true
+			and MultiBot.Comm
+			and type(MultiBot.Comm.RunGroupOrderCommand) == "function") then
+			local token = MultiBot.Comm.RunGroupOrderCommand("GRIND", onComplete)
+			if(token ~= false and token ~= nil) then
+				return true, "pending", token
+			end
+			return false, "blocked"
+		end
+
+		if(MultiBot.bridge) then MultiBot.bridge.lastError = "GRIND_ORDER_UNAVAILABLE" end
+		return false, "blocked"
+	end
+	-- MB_GRIND_ORDER_V1_ROUTE_END
 
 	-- MB_ATTACK_ORDER_V1_ROUTE_BEGIN
 	local attackAudience = nil
@@ -1168,7 +1196,7 @@ MultiBot.ActionToGroup = function(pAction, onComplete)
 	-- MB_RTSC_ORDER_V1_ROUTE_END
 
 	if(GetNumRaidMembers() > 5) then
-		local route = _mbRouteStrategyMutation(pAction, "RAID", "")
+		local route = _mbRouteStrategyMutation(pAction, "RAID", "", onComplete)
 		if(route == MB_STRATEGY_ROUTE_BRIDGE) then
 			return true
 		end
@@ -1180,7 +1208,7 @@ MultiBot.ActionToGroup = function(pAction, onComplete)
 	end
 
 	if(GetNumPartyMembers() > 0) then
-		local route = _mbRouteStrategyMutation(pAction, "PARTY", "")
+		local route = _mbRouteStrategyMutation(pAction, "PARTY", "", onComplete)
 		if(route == MB_STRATEGY_ROUTE_BRIDGE) then
 			return true
 		end

@@ -341,17 +341,49 @@ local function sendInventoryFeedback(key, fallback)
     SendChatMessage(inventoryItemL(key, fallback), "SAY")
 end
 
-local function addInventorySystemMessage(message)
+-- Inventory H1a: localized structured results are displayed as local SYSTEM
+-- messages. The Bridge action/ACK/refresh paths remain unchanged.
+local function addInventorySystemMessage(message, severity)
     message = tostring(message or "")
     if message == "" then
         return
     end
 
-    if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
-        DEFAULT_CHAT_FRAME:AddMessage(message)
-    elseif print then
-        print(message)
+    -- Avoid a double prefix when a locale already includes [MultiBot].
+    if string.sub(message, 1, 10) == "[MultiBot]" then
+        message = string.gsub(string.sub(message, 11), "^%s+", "")
     end
+
+    local bodyColor = "ffffffff"
+    if severity == "success" then
+        bodyColor = "ff33ff33"
+    elseif severity == "warning" then
+        bodyColor = "ffffff00"
+    elseif severity == "error" then
+        bodyColor = "ffff4040"
+    end
+
+    -- Embedded native item links retain their own link-color sequences.
+    local display = "|cffffff00[MultiBot]|r |c" .. bodyColor .. message .. "|r"
+    if MultiBot.Comm and type(MultiBot.Comm.ShowSystemMessage) == "function" then
+        MultiBot.Comm.ShowSystemMessage(display)
+    elseif DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
+        DEFAULT_CHAT_FRAME:AddMessage(display)
+    elseif type(print) == "function" then
+        print(display)
+    end
+end
+
+local function addInventorySuccessMessage(message)
+    addInventorySystemMessage(message, "success")
+end
+
+local function addInventoryWarningMessage(message)
+    addInventorySystemMessage(message, "warning")
+end
+
+local function addInventoryErrorMessage(message)
+    addInventorySystemMessage(message, "error")
 end
 
 local function isInventoryProtectedKey(item)
@@ -593,7 +625,7 @@ MultiBot.OnBridgeInventoryItemTradeResult = function(botName, status, reason)
     end
 
     if status ~= "OK" then
-        addInventorySystemMessage(
+        addInventoryErrorMessage(
             inventoryItemL("inventory.item_trade.failed", "The item could not be added to the trade.")
                 .. " [" .. tostring(reason or "FAILED") .. "]"
         )
@@ -645,14 +677,14 @@ local function handleInventoryItemClick(button)
                 return
             end
 
-            addInventorySystemMessage(inventoryItemL(
+            addInventoryErrorMessage(inventoryItemL(
                 "inventory.item_sell.send_failed",
                 "The item-sale request could not be sent."
             ))
             return
         end
 
-        addInventorySystemMessage(inventoryItemL(
+        addInventoryWarningMessage(inventoryItemL(
             "inventory.item_sell.unavailable",
             "Item selling via the bridge is unavailable."
         ))
@@ -678,14 +710,14 @@ local function handleInventoryItemClick(button)
                 return
             end
 
-            addInventorySystemMessage(inventoryItemL(
+            addInventoryErrorMessage(inventoryItemL(
                 "inventory.item_trade.send_failed",
                 "The item-trade request could not be sent."
             ))
             return
         end
 
-        addInventorySystemMessage(inventoryItemL(
+        addInventoryWarningMessage(inventoryItemL(
             "inventory.item_trade.unavailable",
             "Item trading via the bridge is unavailable."
         ))
@@ -703,7 +735,7 @@ local function handleInventoryItemClick(button)
                 return
             end
 
-            addInventorySystemMessage(inventoryItemL(
+            addInventoryErrorMessage(inventoryItemL(
                 "inventory.item_deposit_exact.send_failed",
                 "The exact deposit request could not be sent."
             ))
@@ -728,7 +760,7 @@ local function handleInventoryItemClick(button)
                 return
             end
 
-            addInventorySystemMessage(inventoryItemL(
+            addInventoryErrorMessage(inventoryItemL(
                 "inventory.item_deposit_exact.send_failed",
                 "The exact deposit request could not be sent."
             ))
@@ -760,14 +792,14 @@ local function handleInventoryItemClick(button)
                 return
             end
 
-            addInventorySystemMessage(MultiBot.L(
+            addInventoryErrorMessage(MultiBot.L(
                 "inventory.item_use.send_failed",
                 "The item-use request could not be sent."
             ))
             return
         end
 
-        addInventorySystemMessage(MultiBot.L(
+        addInventoryWarningMessage(MultiBot.L(
             "inventory.item_use.unavailable",
             "Item use via the bridge is unavailable."
         ))
@@ -833,7 +865,7 @@ function MultiBot.OnBridgeInventoryItemSellResult(botName, result, reason)
         return
     end
 
-    addInventorySystemMessage(string.format(
+    addInventoryErrorMessage(string.format(
         inventoryItemL("inventory.item_sell.err", "Failed to sell item: %s"),
         getInventoryItemSellReason(reason)
     ))
@@ -860,7 +892,7 @@ function MultiBot.OnBridgeInventoryItemUseResult(botName, result, reason)
         return
     end
 
-    addInventorySystemMessage(string.format(
+    addInventoryErrorMessage(string.format(
         MultiBot.L("inventory.item_use.err", "Use failed: %s"),
         getInventoryItemUseReason(reason)
     ))
@@ -883,17 +915,17 @@ function MultiBot.OnBridgeInventoryItemActionResult(botName, action, itemId, res
 
     if result == "OK" then
         if action == "SELL_GREY" then
-            addInventorySystemMessage(string.format(
+            addInventorySuccessMessage(string.format(
                 inventoryItemL("inventory.item_action.sell_grey.ok", "Grey item sale: %d item(s) sold."),
                 tonumber(moved or 0) or 0
             ))
         elseif action == "SELL_VENDOR" then
-            addInventorySystemMessage(string.format(
+            addInventorySuccessMessage(string.format(
                 inventoryItemL("inventory.item_action.sell_vendor.ok", "Vendor item sale: %d item(s) sold."),
                 tonumber(moved or 0) or 0
             ))
         else
-            addInventorySystemMessage(string.format(
+            addInventorySuccessMessage(string.format(
                 inventoryItemL("inventory.item_action.ok", "%s: %s x%d."),
                 actionLabel,
                 itemName,
@@ -951,13 +983,13 @@ function MultiBot.OnBridgeInventoryItemActionResult(botName, action, itemId, res
     end
 
     if reasonText ~= "" then
-        addInventorySystemMessage(string.format(
+        addInventoryErrorMessage(string.format(
             inventoryItemL("inventory.item_action.err", "%s failed: %s"),
             actionLabel,
             reasonText
         ))
     else
-        addInventorySystemMessage(string.format(
+        addInventoryErrorMessage(string.format(
             inventoryItemL("inventory.item_action.failed", "%s failed."),
             actionLabel
         ))

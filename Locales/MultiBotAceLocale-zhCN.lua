@@ -1468,6 +1468,7 @@ local zhCNValues = {
   -- MB_W3A_ADDON_FEEDBACK_I18N_V1_BEGIN
   ["w3a.feedback.follow"] = "[MultiBot] 跟随：%d/%d 个机器人已处理%s。",
   ["w3a.feedback.stay"] = "[MultiBot] 停留：%d/%d 个机器人已处理%s。",
+  ["w3a.feedback.grind"] = "[MultiBot] 刷怪：%d/%d 个机器人已处理%s。",
   ["w3a.feedback.release"] = "[MultiBot] 释放灵魂：%d/%d 个机器人已处理%s。",
   ["w3a.feedback.revive"] = "[MultiBot] 复活：%d/%d 个机器人已处理%s。",
   ["w3a.feedback.summon"] = "[MultiBot] 召唤：%d/%d 个机器人已处理%s。",
