@@ -166,35 +166,6 @@ local function getInventoryItemDisplayCount(item)
     return count
 end
 
-local function registerInventoryPendingConsume(botName, item, amount)
-    local key = getInventoryConsumeKey(item)
-    local store = getInventoryPendingConsumeStore(botName, true)
-    if not key or not store then
-        return false
-    end
-
-    amount = tonumber(amount or 1) or 1
-    if amount < 1 then
-        amount = 1
-    end
-
-    local baseline = tonumber(item and item._serverCount or item and item.count or 1) or 1
-    if baseline < 1 then
-        baseline = 1
-    end
-
-    local pending = store[key]
-    if type(pending) ~= "table" then
-        pending = { amount = 0, baseline = baseline }
-        store[key] = pending
-    end
-
-    pending.amount = (tonumber(pending.amount or 0) or 0) + amount
-    pending.baseline = math.max(tonumber(pending.baseline or 0) or 0, baseline)
-    pending.expiresAt = getNow() + 60
-    return true
-end
-
 local function applyInventoryPendingConsume(botName, item)
     local key = getInventoryConsumeKey(item)
     local store = getInventoryPendingConsumeStore(botName, false)
@@ -229,31 +200,6 @@ local function applyInventoryPendingConsume(botName, item)
     return item
 end
 
-local function optimisticallyConsumeInventoryButton(button)
-    if not button or not button.item then
-        return
-    end
-
-    local count = getInventoryItemDisplayCount(button.item)
-    if count <= 1 then
-        if button.Hide then
-            button:Hide()
-        end
-        return
-    end
-
-    count = count - 1
-    button.item.count = count > 1 and count or nil
-
-    if button.setAmount then
-        if count > 1 then
-            button.setAmount(count)
-        elseif button.amount and button.amount.Hide then
-            button.amount:Hide()
-        end
-    end
-end
-
 local function requestInventoryRefresh(delay, botName)
     local targetBotName = botName or (MultiBot.inventory and MultiBot.inventory.name) or ""
 
@@ -278,6 +224,7 @@ local function requestInventoryPostActionRefresh(botName, firstDelay, secondDela
 end
 
 local runBridgeInventoryItemDestroy
+local reportInventoryDestroySendFailure
 
 local function buildInventoryDestroyRequest(button, botName)
     if not button or not button.item or not botName or botName == "" then
@@ -324,8 +271,10 @@ local function bindInventoryDestroyConfirm(button, botName)
                 local acceptedRequest = data and data.request or nil
                 if not acceptedRequest then return end
 
-                if runBridgeInventoryItemDestroy then
-                    runBridgeInventoryItemDestroy(acceptedRequest)
+                if not runBridgeInventoryItemDestroy or not runBridgeInventoryItemDestroy(acceptedRequest) then
+                    if reportInventoryDestroySendFailure then
+                        reportInventoryDestroySendFailure()
+                    end
                 end
             end,
         }
@@ -384,6 +333,13 @@ end
 
 local function addInventoryErrorMessage(message)
     addInventorySystemMessage(message, "error")
+end
+
+reportInventoryDestroySendFailure = function()
+    local reason = MultiBot.bridge and MultiBot.bridge.lastError or "UNAVAILABLE"
+    addInventoryErrorMessage(inventoryItemL(
+        "inventory.item_destroy.unavailable", "Item destruction was not submitted."
+    ) .. " (" .. tostring(reason) .. ")")
 end
 
 local function isInventoryProtectedKey(item)
@@ -820,7 +776,9 @@ local function handleInventoryItemClick(button)
         return
     end
 
-    runBridgeInventoryItemDestroy(destroyRequest)
+    if not runBridgeInventoryItemDestroy(destroyRequest) then
+        reportInventoryDestroySendFailure()
+    end
 end
 
 local function getInventoryItemActionLabel(action)

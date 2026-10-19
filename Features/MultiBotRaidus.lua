@@ -144,6 +144,9 @@ local function runRaidusLifecycleForName(name, mode, refreshPool)
 
     local key = string.lower(name)
     if raidusLifecyclePending[key] ~= nil then
+        if MultiBot and MultiBot.bridge then
+            MultiBot.bridge.lastError = "RAIDUS_LIFECYCLE_PENDING"
+        end
         return false
     end
 
@@ -242,7 +245,9 @@ end
 
 MultiBot.raidus:HookScript("OnShow", function()
     syncRaidusMainButtonState(true)
-    if type(MultiBot.raidus.ValidatePool) == "function" then
+    if type(MultiBot.raidus.ValidatePoolOnOpen) == "function" then
+        MultiBot.raidus.ValidatePoolOnOpen()
+    elseif type(MultiBot.raidus.ValidatePool) == "function" then
         MultiBot.raidus.ValidatePool(false)
     end
 end)
@@ -1411,7 +1416,10 @@ end
 local function removeRaidusMembersOutsideLayout(raidByMembers, raidByName, selfName)
     for raidMemberName, _ in pairs(raidByMembers) do
         if raidMemberName ~= selfName and raidByName[raidMemberName] == nil then
-            runRaidusLifecycleForName(raidMemberName, "DISCONNECT_GROUP", false)
+            if not runRaidusLifecycleForName(raidMemberName, "DISCONNECT_GROUP", false) then
+                local reason = MultiBot.bridge and MultiBot.bridge.lastError or "UNAVAILABLE"
+                showRaidusDropFeedback(tostring(raidMemberName) .. ": " .. tostring(reason))
+            end
         end
     end
 end
@@ -2039,6 +2047,11 @@ MultiBot.raidus.ValidatePool = function(force)
         local live = getRaidusPoolValidationState()
         if live.generation == generation then
             live.cooldown = false
+            if live.reopenValidationPending and not live.running
+                and MultiBot.raidus:IsShown() then
+                live.reopenValidationPending = false
+                MultiBot.raidus.ValidatePool(false)
+            end
         end
     end)
 
@@ -2058,6 +2071,15 @@ MultiBot.raidus.ValidatePool = function(force)
         live.queue = nil
         live.nextIndex = nil
         rebuildRaidusPoolAfterValidation()
+        if live.reopenValidationPending and not live.cooldown
+            and MultiBot.raidus:IsShown() then
+            live.reopenValidationPending = false
+            scheduleRaidusPoolValidation(0, function()
+                if MultiBot.raidus:IsShown() then
+                    MultiBot.raidus.ValidatePool(false)
+                end
+            end)
+        end
     end
 
     if #names == 0 then
@@ -2117,6 +2139,16 @@ MultiBot.raidus.ValidatePool = function(force)
 
     pumpValidation()
     return true
+end
+
+MultiBot.raidus.ValidatePoolOnOpen = function()
+    local state = getRaidusPoolValidationState()
+    if state.running or state.cooldown then
+        state.reopenValidationPending = true
+        return false
+    end
+    state.reopenValidationPending = false
+    return MultiBot.raidus.ValidatePool(true)
 end
 -- MB_RAIDUS_POOL_SERVER_VALIDATION_V1_RUNTIME_END
 

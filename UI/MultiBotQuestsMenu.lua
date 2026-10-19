@@ -436,11 +436,13 @@ function MultiBot.InitializeQuestsMenu(tRight)
                 UIErrorsFrame:AddMessage(MultiBot.L("tips.quests.gobselectboterror"), 1, 0.2, 0.2, 1)
                 return
             end
-            if not (MultiBot.Comm
-                and type(MultiBot.Comm.RunQuestGameObjectUseCommand) == "function"
-                and MultiBot.Comm.RunQuestGameObjectUseCommand(bot, normalized)) then
-                if MultiBot.bridge then
-                    MultiBot.bridge.lastError = "QUEST_GAMEOBJECT_USE_UNAVAILABLE"
+            local comm = MultiBot.Comm
+            local token = comm and type(comm.RunQuestGameObjectUseCommand) == "function"
+                and comm.RunQuestGameObjectUseCommand(bot, normalized)
+            if not token then
+                local reason = MultiBot.bridge and MultiBot.bridge.lastError or "QUEST_GAMEOBJECT_USE_UNAVAILABLE"
+                if UIErrorsFrame then
+                    UIErrorsFrame:AddMessage("[MultiBot] " .. tostring(reason), 1, 0.3, 0.3, 1)
                 end
             end
         end)

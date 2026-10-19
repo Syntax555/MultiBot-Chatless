@@ -4,6 +4,7 @@ local MB_REWARD_RETRY_DELAYS = { 0.15, 0.45, 0.90 }
 
 local MB_REWARD_CONFIG_POPUP_KEY = "MULTIBOT_REWARD_CONFIG_WARNING"
 local rewardCollectToken = 0
+local rewardPendingCapabilityToken = nil
 
 local function showRewardConfigPopup()
 	if(type(StaticPopupDialogs) ~= "table" or type(StaticPopup_Show) ~= "function") then return end
@@ -158,11 +159,30 @@ local function applyRewardChoice(pButton)
 	local tBotName = pButton.getName()
 	if(tBotName == nil or tBotName == "") then return end
 
+	local tSessionToken = rewardCollectToken
+	local tRewardState = MultiBot.reward
+	local tRow = pButton.parent
+	local tItemLink = pButton.link
+	local function isCurrentSession()
+		return tRewardState ~= nil
+			and MultiBot.reward == tRewardState
+			and tRewardState.state == true
+			and rewardCollectToken == tSessionToken
+	end
+	local function restoreRow()
+		if(tRow ~= nil and tRow.name == tBotName
+				and pButton.parent == tRow and pButton.link == tItemLink
+				and tRow.Show ~= nil and tRewardState:IsVisible()) then
+			tRow:Show()
+		end
+	end
+
 	pButton.parent:Hide()
 
 	local tStarted = MultiBot.Comm
 		and type(MultiBot.Comm.RunQuestRewardCommand) == "function"
-		and MultiBot.Comm.RunQuestRewardCommand(tBotName, pButton.link, function(result)
+		and MultiBot.Comm.RunQuestRewardCommand(tBotName, tItemLink, function(result)
+			if(not isCurrentSession()) then return end
 			local tClickedBot = MultiBot.getBot(tBotName)
 			if(result ~= nil and result.status == "ok" and result.rewarded == 1) then
 				if(tClickedBot ~= nil) then tClickedBot.rewarded = true end
@@ -171,17 +191,13 @@ local function applyRewardChoice(pButton)
 			end
 
 			if(tClickedBot ~= nil) then tClickedBot.rewarded = false end
-			if(pButton.parent ~= nil and pButton.parent.Show ~= nil) then
-				pButton.parent:Show()
-			end
+			restoreRow()
 		end)
 
-	if(not tStarted) then
+	if(not tStarted and isCurrentSession()) then
 		local tClickedBot = MultiBot.getBot(tBotName)
 		if(tClickedBot ~= nil) then tClickedBot.rewarded = false end
-		if(pButton.parent ~= nil and pButton.parent.Show ~= nil) then
-			pButton.parent:Show()
-		end
+		restoreRow()
 	end
 end
 
@@ -239,8 +255,9 @@ MultiBot.rewardCollectEligibleUnits = collectEligibleUnits
 
 MultiBot.rewardManualSelectionAllowed = function()
 	local tBridge = MultiBot and MultiBot.bridge or nil
-	if(type(tBridge) ~= "table" or tBridge.connected ~= true) then
-		return true
+	if(type(tBridge) ~= "table" or tBridge.connected ~= true
+			or tBridge.questRewardCapable ~= true) then
+		return false
 	end
 	if(tBridge.capabilitiesResolved ~= true) then
 		return false
@@ -278,6 +295,7 @@ MultiBot.rewardSetEnabled = function(isEnabled)
 	tReward.state = (isEnabled == true)
 
 	if(not tReward.state) then
+		rewardCollectToken = rewardCollectToken + 1
 		MultiBot.rewardResetPagination()
 		MultiBot.rewardClearPage()
 		tReward:Hide()
@@ -404,6 +422,27 @@ MultiBot.rewardRenderPage = function()
 	end
 end
 
+MultiBot.rewardOnBridgeCapabilityReady = function()
+	local token = rewardPendingCapabilityToken
+	if token == nil or token ~= rewardCollectToken then return end
+	local tReward = MultiBot.reward
+	if tReward == nil or tReward.state == false or not isQuestRewardPanelOpen() then
+		rewardPendingCapabilityToken = nil
+		return
+	end
+	local bridge = MultiBot.bridge
+	if type(bridge) ~= "table" or bridge.connected ~= true or bridge.capabilitiesResolved ~= true then
+		return
+	end
+	if bridge.questRewardPolicyCapable == true
+			and bridge.questRewardPolicy ~= "AUTO"
+			and bridge.questRewardPolicy ~= "MANUAL" then
+		return
+	end
+	rewardPendingCapabilityToken = nil
+	MultiBot.setRewards(1, token)
+end
+
 MultiBot.setRewards = function(attempt, token)
 	local tReward = MultiBot.rewardEnsureState()
 	if(tReward == nil or tReward.state == false) then return end
@@ -412,6 +451,7 @@ MultiBot.setRewards = function(attempt, token)
 	if(token == nil) then
 		rewardCollectToken = rewardCollectToken + 1
 		token = rewardCollectToken
+		rewardPendingCapabilityToken = nil
 	end
 
 	if(type(MultiBot.rewardManualSelectionAllowed) == "function"
@@ -422,7 +462,9 @@ MultiBot.setRewards = function(attempt, token)
 		if(type(tBridge) == "table"
 				and tBridge.connected == true
 				and tBridge.capabilitiesResolved ~= true) then
-			scheduleRewardCollectRetry(attempt, token)
+			if not scheduleRewardCollectRetry(attempt, token) then
+				rewardPendingCapabilityToken = token
+			end
 			return
 		end
 

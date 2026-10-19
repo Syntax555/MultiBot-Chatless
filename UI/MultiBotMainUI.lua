@@ -806,13 +806,13 @@ end
 
 local function runMainResetCommand(operation)
     local targetName = UnitName("target")
-    local scope = nil
+    local scope
     local target = ""
 
     if targetName ~= nil and targetName ~= "Unknown Entity" then
         scope = "TARGET"
         target = targetName
-    elseif GetNumRaidMembers() > 5 or GetNumPartyMembers() > 0 then
+    elseif GetNumRaidMembers() > 0 or GetNumPartyMembers() > 0 then
         scope = "GROUP"
     else
         if UIErrorsFrame then

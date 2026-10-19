@@ -1298,15 +1298,6 @@ local function getInventorySourceButton(botName)
     return unitFrame and unitFrame.getButton and unitFrame.getButton("Inventory") or nil
 end
 
-local function getInventoryWaitButton(botName)
-    if not botName or botName == "" then
-        return nil
-    end
-
-    local units = getInventoryUnitsFrame()
-    return units and units.buttons and units.buttons[botName] or nil
-end
-
 local function disableOtherInventoryButtons(activeBotName)
     local units = getInventoryUnitsFrame()
     if not units or not MultiBot.index or not MultiBot.index.actives then

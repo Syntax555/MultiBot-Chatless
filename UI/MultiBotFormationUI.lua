@@ -214,6 +214,7 @@ local function updateDesiredFormationFromSnapshot(result)
     local token = MultiBot.Comm.RunFormationCommand("GROUP", "", formationDesired)
     if token then
         formationAutoApplyToken = token
+        formationKnownBots = currentKnownBots
     end
 end
 

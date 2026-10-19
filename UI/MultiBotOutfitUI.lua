@@ -1159,6 +1159,10 @@ function OutfitUI:HandleBridgeCommandResult(botName, token, result, commandSuffi
     end
 
     local isCurrentBot = self.botName == botName
+    if result == "OK" then
+        -- A delayed refresh is scheduled below for successful commands.
+        self.pendingRefresh = false
+    end
     self:EndCommandLock(botName, token, false)
 
     if result ~= "OK" then

@@ -4353,9 +4353,10 @@ MultiBot.AddClassToTarget = function(classCmd, gender)
 
   local bridge = MultiBot.bridge
   local comm = MultiBot.Comm
-  if bridge and bridge.connected == true
+  local dispatchAvailable = bridge and bridge.connected == true
       and bridge.creatorAddClassCapable == true
-      and comm and type(comm.RunCreatorAddClass) == "function" then
+      and comm and type(comm.RunCreatorAddClass) == "function"
+  if dispatchAvailable then
     local token = comm.RunCreatorAddClass(classCmd, gender)
     if token then
       if MultiBot.BeginAddClassAutoGroup then
@@ -4368,7 +4369,7 @@ MultiBot.AddClassToTarget = function(classCmd, gender)
     end
   end
 
-  if bridge then
+  if bridge and not dispatchAvailable then
     bridge.lastError = "CREATOR_ADDCLASS_CAPABILITY_UNAVAILABLE"
   end
   return nil

@@ -2639,6 +2639,9 @@ state.spellbookIgnoreCapable = false
   state.stateFramingCapable = false
   state.capabilitiesResolved = true
   flushPendingStateRefreshes()
+  if MultiBot and type(MultiBot.rewardOnBridgeCapabilityReady) == "function" then
+    MultiBot.rewardOnBridgeCapabilityReady()
+  end
   return true
 end
 
@@ -9426,7 +9429,20 @@ state.botWipeCapable = false
     end
   end
   state.spellbookCastCommands = {}
+  local pendingIgnoreCommands = state.spellbookIgnoreCommands or {}
   state.spellbookIgnoreCommands = {}
+  for token, pending in pairs(pendingIgnoreCommands) do
+    if type(pending) == "table" and type(pending.callback) == "function" then
+      pending.callback({
+        token = token,
+        status = "error",
+        botName = pending.botName,
+        spellId = pending.spellId,
+        action = pending.action,
+        reason = "DISCONNECTED",
+      })
+    end
+  end
 
   local pendingTokens = {}
   for token in pairs(state.strategyMutationCommands or {}) do
@@ -12327,7 +12343,9 @@ local function finishCapabilityResolution(state, debugOpcode, payload)
   state.capabilitiesResolved = true
   debugPrint("ADDON:RX", debugOpcode, payload or "")
   flushPendingStateRefreshes()
-  if state.selfBotCapable == true and type(Comm.RequestSelfBotState) == "function" then
+  if MultiBot and type(MultiBot.rewardOnBridgeCapabilityReady) == "function" then
+    MultiBot.rewardOnBridgeCapabilityReady()
+  end  if state.selfBotCapable == true and type(Comm.RequestSelfBotState) == "function" then
     Comm.RequestSelfBotState()
   end
   if state.altRosterCapable == true and type(Comm.RequestAltRoster) == "function" then
@@ -12398,6 +12416,9 @@ local function handleCapabilityMessage(opcode, payload, state)
     end
 
     debugPrint("ADDON:RX", "QUEST_REWARD_POLICY", policy)
+    if MultiBot and type(MultiBot.rewardOnBridgeCapabilityReady) == "function" then
+      MultiBot.rewardOnBridgeCapabilityReady()
+    end
     return true
   end
   -- MB_QUEST_REWARD_POLICY_V1_RX_END

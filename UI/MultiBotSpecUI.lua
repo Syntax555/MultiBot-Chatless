@@ -288,6 +288,12 @@ function Spec:RequestList(bot, wrapper)
         return
     end
 
+    local reason = MultiBot.bridge and MultiBot.bridge.lastError or "UNAVAILABLE"
+    self:HideDropdown()
+    self.pending = nil
+    if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
+        DEFAULT_CHAT_FRAME:AddMessage("|cffffff00[MultiBot]|r Talent spec list: " .. tostring(reason))
+    end
 end
 
 

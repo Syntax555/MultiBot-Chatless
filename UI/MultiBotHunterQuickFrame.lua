@@ -784,15 +784,27 @@ function HunterQuick:ToggleStrip(row, stripKey)
     end
 end
 
+local function runHunterPetManageWithFeedback(targetName, manageAction, argument)
+    local comm = MultiBot and MultiBot.Comm
+    local token = comm and type(comm.RunHunterPetManage) == "function"
+        and comm.RunHunterPetManage(targetName, manageAction, argument)
+    if not token then
+        local reason = MultiBot.bridge and MultiBot.bridge.lastError or "UNAVAILABLE"
+        if UIErrorsFrame and UIErrorsFrame.AddMessage then
+            UIErrorsFrame:AddMessage("[MultiBot] Hunter pet: " .. tostring(reason), 1, 0.3, 0.3, 1)
+        end
+    end
+    return token and true or false
+end
+
 function HunterQuick:ShowPrompt(manageAction, targetName, title)
     if type(ShowPrompt) ~= "function" then
         return
     end
 
     ShowPrompt(title or MultiBot.L("info.hunterpeteditentervalue"), function(text)
-        if text and text ~= "" and targetName
-            and MultiBot.Comm and type(MultiBot.Comm.RunHunterPetManage) == "function" then
-            MultiBot.Comm.RunHunterPetManage(targetName, manageAction, text)
+        if text and text ~= "" and targetName then
+            runHunterPetManageWithFeedback(targetName, manageAction, text)
         end
     end, "")
 end
@@ -977,9 +989,7 @@ function HunterQuick:EnsureSearchFrame()
                 row.text:SetText(string.format("|cffffd200%-24s|r |cff888888[%s]|r", data.name, getFamilyLabel(data.family)))
                 row:SetScript("OnClick", function()
                     if host.TargetName then
-                        if MultiBot.Comm and type(MultiBot.Comm.RunHunterPetManage) == "function" then
-                            MultiBot.Comm.RunHunterPetManage(host.TargetName, "TAME_ID", data.id)
-                        end
+                        runHunterPetManageWithFeedback(host.TargetName, "TAME_ID", data.id)
                     end
                     host:Hide()
                 end)
@@ -1087,9 +1097,7 @@ function HunterQuick:ShowFamilyFrame(targetName)
         row:SetScript("OnClick", function()
             local currentTargetName = frame.TargetName
             if currentTargetName then
-                if MultiBot.Comm and type(MultiBot.Comm.RunHunterPetManage) == "function" then
-                    MultiBot.Comm.RunHunterPetManage(currentTargetName, "TAME_FAMILY", data.id)
-                end
+                runHunterPetManageWithFeedback(currentTargetName, "TAME_FAMILY", data.id)
             end
             frame:Hide()
         end)
@@ -1117,13 +1125,14 @@ function HunterQuick:BuildUtilityAction(row, definition, index)
                 and (not MultiBot.Comm
                     or type(MultiBot.Comm.IsHunterPetLifecycleCapable) ~= "function"
                     or not MultiBot.Comm.IsHunterPetLifecycleCapable()) then
+                if UIErrorsFrame and UIErrorsFrame.AddMessage then
+                    UIErrorsFrame:AddMessage("[MultiBot] Hunter pet: LIFECYCLE_UNAVAILABLE", 1, 0.3, 0.3, 1)
+                end
                 row.utilsStrip:Hide()
                 return
             end
 
-            if MultiBot.Comm and type(MultiBot.Comm.RunHunterPetManage) == "function" then
-                MultiBot.Comm.RunHunterPetManage(row.owner, definition.manageAction, "")
-            end
+            runHunterPetManageWithFeedback(row.owner, definition.manageAction, "")
             row.utilsStrip:Hide()
         else
             local searchFrame = self:EnsureSearchFrame()

@@ -142,6 +142,7 @@ function MultiBot.HandleOnUpdate(pElapsed)
 								if MultiBot.isMember(inviteName) == false then
 									if GetNumPartyMembers() == 4 then ConvertToRaid() end
 									MultiBot.doSlash("/invite", inviteName)
+									live.needs = math.max(0, (tonumber(live.needs) or 0) - 1)
 								end
 								finishPending()
 								return
@@ -173,6 +174,7 @@ function MultiBot.HandleOnUpdate(pElapsed)
 									and MultiBot.isMember(inviteName) == false then
 									if GetNumPartyMembers() == 4 then ConvertToRaid() end
 									MultiBot.doSlash("/invite", inviteName)
+									current.needs = math.max(0, (tonumber(current.needs) or 0) - 1)
 								end
 								current.pending = false
 								current.pendingName = nil
@@ -185,7 +187,6 @@ function MultiBot.HandleOnUpdate(pElapsed)
 						end)
 
 						if resolveToken then
-							invite.needs = invite.needs - 1
 							invite.index = invite.index + 1
 							invite.elapsed = 0
 						else
