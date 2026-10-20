@@ -448,8 +448,14 @@ function MultiBot.InitializeQuestsMenu(tRight)
         end)
     end
     gobSearchButton.doLeft = function()
-        if MultiBot.RequestGameObjectResults then
-            MultiBot.RequestGameObjectResults()
+        if MultiBot.RequestGameObjectResults and MultiBot.RequestGameObjectResults() then
+            return
+        end
+        local comm = MultiBot.Comm
+        if comm and type(comm.ShowSystemMessage) == "function" then
+            comm.ShowSystemMessage("[MultiBot] Game-object search unavailable")
+        elseif UIErrorsFrame then
+            UIErrorsFrame:AddMessage("[MultiBot] Game-object search unavailable", 1, 0.3, 0.3, 1)
         end
     end
     tRight.buttons["BotUseGOB"] = gobButton

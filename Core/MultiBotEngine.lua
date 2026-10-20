@@ -3273,7 +3273,6 @@ MultiBot.RequestInventoryRefresh = function(botName, delay, options)
 		return false
 	end
 
-	options = options or {}
 
 
 	local function neutralizeCurrentInventoryView()

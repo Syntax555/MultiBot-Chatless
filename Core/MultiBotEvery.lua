@@ -695,10 +695,9 @@ local function addCommonCombatStrategyButton(pFrame, pCombat, tFrame, buttonName
 			return
 		end
 
-		if MultiBot.OnOffSwitch(self) then
-			sendCommonCombatStrategy(self, plusCommand)
-		else
-			sendCommonCombatStrategy(self, minusCommand)
+		local command = self.state and minusCommand or plusCommand
+		if sendCommonCombatStrategy(self, command) then
+			MultiBot.OnOffSwitch(self)
 		end
 	end
 

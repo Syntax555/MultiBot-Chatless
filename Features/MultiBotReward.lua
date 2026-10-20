@@ -440,7 +440,8 @@ MultiBot.rewardOnBridgeCapabilityReady = function()
 		return
 	end
 	rewardPendingCapabilityToken = nil
-	MultiBot.setRewards(1, token)
+	rewardCollectToken = rewardCollectToken + 1
+	MultiBot.setRewards(1, rewardCollectToken)
 end
 
 MultiBot.setRewards = function(attempt, token)
@@ -462,9 +463,8 @@ MultiBot.setRewards = function(attempt, token)
 		if(type(tBridge) == "table"
 				and tBridge.connected == true
 				and tBridge.capabilitiesResolved ~= true) then
-			if not scheduleRewardCollectRetry(attempt, token) then
-				rewardPendingCapabilityToken = token
-			end
+			rewardPendingCapabilityToken = token
+			scheduleRewardCollectRetry(attempt, token)
 			return
 		end
 
