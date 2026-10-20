@@ -49,8 +49,8 @@ local esESValues = {
   ["talent.apply.failed"] = "No se pudieron aplicar los talentos a %s (%s).",
   -- MB_TALENT_APPLY_I18N_V1_END
   -- MB_SELFACTION_I18N_V1_BEGIN
-  ["info.every.summon.failed"] = "[MultiBot] No se pudo invocar a %s (%s).",
-  ["info.every.summon.send_failed"] = "[MultiBot] No se pudo enviar la solicitud de invocación de %s (%s).",
+    ["info.every.summon.failed"] = "[MultiBot] No se pudo invocar a %s (%s).",
+    ["info.every.summon.send_failed"] = "[MultiBot] No se pudo enviar la solicitud de invocación de %s (%s).",
   ["selfaction.bridge_unavailable"] = "El bridge no está disponible: la acción de SelfBot no se ha enviado.",
   ["selfaction.failed"] = "La acción de SelfBot ha fallado: %s",
   ["selfaction.send_failed"] = "No se ha podido enviar la acción de SelfBot: %s",
@@ -779,7 +779,7 @@ local esESValues = {
   ["tips.quests.incomplist"] = "Misiones actuales del/de los bot(s)",
   ["tips.quests.complist"] = "Lista de misiones completadas del/de los bot(s)",
   ["tips.quests.alllist"] = "Todas las misiones del/de los bot(s)",
-  ["info.quests.gob_search_unavailable"] = "[MultiBot] La búsqueda de objetos del juego no está disponible.",
+    ["info.quests.gob_search_unavailable"] = "[MultiBot] La búsqueda de objetos del juego no está disponible.",
   ["info.quests.bridge_unavailable"] = "[MultiBot] Las listas de misiones no están disponibles a través del Bridge. No se envió ningún fallback por chat.",
   ["tips.quests.compheader"] = "** Misiones completadas **",
   ["tips.quests.incompheader"] = "** Misiones incompletas **",
@@ -1373,8 +1373,8 @@ local esESValues = {
   ["strategy.reason.SELF_STRATEGY_TOO_MANY_REQUESTS"] = "Demasiadas solicitudes de estrategia de SelfBot. Inténtalo de nuevo en un momento.",
   ["strategy.reason.UNKNOWN"] = "La orden de estrategia falló por un motivo desconocido.",
   -- MB_CREATOR_INIT_AUTO_FEEDBACK_I18N_V1_BEGIN
-  ["inventory.equip_observe.unequipped"] = "[MultiBot] %s se quita: %s",
-  ["creator.init_auto.feedback.equipped"] = "[MultiBot] %s equipa: %s",
+    ["inventory.equip_observe.unequipped"] = "[MultiBot] %s se quita: %s",
+    ["creator.init_auto.feedback.equipped"] = "[MultiBot] %s equipa: %s",
   -- MB_CREATOR_INIT_AUTO_FEEDBACK_I18N_V1_END
   ["info.outfits.feedback_equip"] = "Conjunto «%s» equipado.",
   ["info.outfits.feedback_replace"] = "Conjunto «%s» reemplazado.",
