@@ -49,6 +49,7 @@ local CAPABILITY_STATE_FIELDS = {
   ["OUTFIT_FRAMING_V1"] = "outfitFramingCapable",
   [INVENTORY_CAPABILITY] = "inventoryCapable",
   ["EQUIP_OBSERVE_V1"] = "equipObserveCapable",
+  ["EQUIP_EVENTS_V1"] = "equipEventsCapable",
   [INVENTORY_EXACT_CAPABILITY] = "inventoryExactCapable",
   [INVENTORY_ITEM_MOVE_CAPABILITY] = "inventoryItemMoveCapable",
   [INVENTORY_ITEM_TRADE_CAPABILITY] = "inventoryItemTradeCapable",
@@ -378,6 +379,8 @@ local function ensureBridgeState()
   state.outfitFramingCapable = state.outfitFramingCapable or false
   state.inventoryCapable = state.inventoryCapable or false
   state.equipObserveCapable = state.equipObserveCapable or false
+  state.equipEventsCapable = state.equipEventsCapable == true
+  state.equipEventBatches = state.equipEventBatches or {}
   state.equipObserveSequence = tonumber(state.equipObserveSequence) or 0
   state.equipObserveRosterIndex = tonumber(state.equipObserveRosterIndex) or 0
   state.equipObservePending = state.equipObservePending or nil
@@ -8961,6 +8964,8 @@ function Comm.MarkDisconnected(reason)
   if MultiBot.Autogear then MultiBot.Autogear.OnDisconnect() end
   state.connectionGeneration = state.connectionGeneration + 1
   state.equipObserveCapable = false
+  state.equipEventsCapable = false
+  state.equipEventBatches = {}
   state.equipObserveScheduled = false
   state.equipObservePending = nil
   state.connected = false
@@ -9542,57 +9547,106 @@ end
 
 -- MB_INVENTORY_H1B1A_EQUIP_OBSERVE_V1_BEGIN
 -- Native Playerbots equipment polling through Bridge; no WHISPER parsing.
-function Comm._StartEquipObserveTicker()
-  local bridge = ensureBridgeState()
-  if bridge.equipObserveScheduled == true or type(MultiBot.TimerAfter) ~= "function" then
-    return
+-- R7: no background equipment polling; the bridge sends EQUIP_CHANGED on real changes.
+
+-- R7: one-shot event batches; no recurring timers and no background GET requests.
+function Comm._HandleEquipChangedPacket(payload, state)
+  if state.connected ~= true or state.equipEventsCapable ~= true then
+    return true
   end
-  bridge.equipObserveScheduled = true
-  local generation = bridge.connectionGeneration
+  local parts = splitFields(payload or "")
+  if #parts ~= 4 then
+    return true
+  end
+  local name = urlDecodeFieldStrict(parts[1], 64, false)
+  local slot = parseBoundedInteger(parts[2], 0, 18)
+  local oldId = parseBoundedInteger(parts[3], 0, 4294967295)
+  local newId = parseBoundedInteger(parts[4], 0, 4294967295)
+  if not name or name == "" or slot == nil or oldId == nil or newId == nil then
+    return true
+  end
 
-  local function tick()
-    local state = ensureBridgeState()
-    if state.connectionGeneration ~= generation then
-      return
+  local key = string.lower(name)
+  local roster = state.roster or {}
+  local present = false
+  for i = 1, #roster do
+    local entry = roster[i]
+    if type(entry) == "table" and string.lower(trim(entry.name)) == key then
+      present = true
+      break
     end
+  end
+  if not present then
+    return true
+  end
 
-    if state.connected == true and state.equipObserveCapable == true then
-      local pending = state.equipObservePending
-      if pending and safeNow() - (tonumber(pending.startedAt) or 0) >= 6.0 then
-        state.equipObservePending = nil
-        pending = nil
+  local batches = state.equipEventBatches or {}
+  state.equipEventBatches = batches
+  local batch = batches[key]
+  if not batch then
+    local active = 0
+    for _ in pairs(batches) do active = active + 1 end
+    if active >= 40 then
+      return true
+    end
+    batch = {name = name, changes = {}}
+    batches[key] = batch
+    local generation = state.connectionGeneration
+    safeDelay(0.35, function()
+      local live = ensureBridgeState()
+      if live.connectionGeneration ~= generation or live.connected ~= true or
+          live.equipEventBatches[key] ~= batch then
+        return
       end
+      live.equipEventBatches[key] = nil
 
-      if not pending then
-        local roster = state.roster or {}
-        local size = #roster
-        for i = 1, size do
-          state.equipObserveRosterIndex = (state.equipObserveRosterIndex % size) + 1
-          local entry = roster[state.equipObserveRosterIndex]
-          local name = type(entry) == "table" and trim(entry.name) or ""
-          if name ~= "" and #name <= 64 then
-            state.equipObserveSequence = (state.equipObserveSequence % 1000000) + 1
-            local token = tostring(math.floor(safeNow() * 1000)) .. "-" .. tostring(state.equipObserveSequence)
-            state.equipObservePending = {
-              name = name, key = string.lower(name), token = token,
-              startedAt = safeNow(), items = {}
-            }
-            if not Comm.Send("GET", "EQUIP_OBSERVE~" .. urlEncodeField(name) .. "~" .. token) then
-              state.equipObservePending = nil
-            end
-            break
+      local equipped, removed = {}, {}
+      local function displayItem(itemId)
+        if type(GetItemInfo) == "function" then
+          local _, link = GetItemInfo(itemId)
+          if type(link) == "string" and link ~= "" then return link end
+        end
+        return "#" .. tostring(itemId)
+      end
+      for _, change in pairs(batch.changes) do
+        if change.oldId ~= change.newId then
+          if change.newId > 0 then
+            equipped[#equipped + 1] = displayItem(change.newId)
+          end
+          if change.oldId > 0 then
+            removed[#removed + 1] = displayItem(change.oldId)
           end
         end
       end
-    end
+      if #equipped > 0 then
+        Comm.ShowSystemMessage(string.format(
+          L("creator.init_auto.feedback.equipped"), batch.name, table.concat(equipped, ", ")))
+      end
+      if #removed > 0 then
+        Comm.ShowSystemMessage(string.format(
+          L("inventory.equip_observe.unequipped"), batch.name, table.concat(removed, ", ")))
+      end
 
-    MultiBot.TimerAfter(1.5, tick)
+      local inventory = MultiBot and MultiBot.inventory or nil
+      if inventory and type(inventory.IsVisible) == "function" and inventory:IsVisible() and
+          string.lower(trim(inventory.name)) == key and MultiBot.RequestInventoryRefresh then
+        MultiBot.RequestInventoryRefresh(batch.name, 0.30)
+      end
+    end)
   end
-
-  MultiBot.TimerAfter(1.5, tick)
+  local previous = batch.changes[slot]
+  if previous then
+    previous.newId = newId
+  else
+    batch.changes[slot] = {oldId = oldId, newId = newId}
+  end
+  return true
 end
 
 function Comm._HandleEquipObservePacket(opcode, payload, state)
+  if opcode == "EQUIP_CHANGED" then
+    return Comm._HandleEquipChangedPacket(payload, state)
+  end
   if opcode ~= "EQUIP_OBSERVE_ITEM" and opcode ~= "EQUIP_OBSERVE_DONE" then
     return false
   end
@@ -9682,8 +9736,6 @@ function Comm.ApplyRosterPayload(payload)
   end
 
   state.roster = roster
-
-  Comm._StartEquipObserveTicker()
 
   if MultiBot.SyncBridgeRosterToPlayers then
     MultiBot.SyncBridgeRosterToPlayers(roster)

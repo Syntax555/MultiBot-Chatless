@@ -49,6 +49,8 @@ local ruRUValues = {
   ["talent.apply.failed"] = "Не удалось применить таланты к %s (%s).",
   -- MB_TALENT_APPLY_I18N_V1_END
   -- MB_SELFACTION_I18N_V1_BEGIN
+  ["info.every.summon.failed"] = "[MultiBot] Не удалось призвать %s (%s).",
+  ["info.every.summon.send_failed"] = "[MultiBot] Не удалось отправить запрос на призыв %s (%s).",
   ["selfaction.bridge_unavailable"] = "Мост недоступен: действие SelfBot не было отправлено.",
   ["selfaction.failed"] = "Ошибка действия SelfBot: %s",
   ["selfaction.send_failed"] = "Не удалось отправить действие SelfBot: %s",
@@ -774,6 +776,7 @@ local ruRUValues = {
   ["tips.quests.incomplist"] = "Текущие квесты бота(ов)",
   ["tips.quests.complist"] = "Список выполненных квестов бота(ов)",
   ["tips.quests.alllist"] = "Все квесты бота(ов)",
+  ["info.quests.gob_search_unavailable"] = "[MultiBot] Поиск игровых объектов недоступен.",
   ["info.quests.bridge_unavailable"] = "[MultiBot] Списки заданий недоступны через Bridge. Резервная отправка через чат не выполнялась.",
   ["tips.quests.compheader"] = "** Выполненные квесты **",
   ["tips.quests.incompheader"] = "** Невыполненные квесты **",
@@ -1367,6 +1370,7 @@ local ruRUValues = {
   ["strategy.reason.SELF_STRATEGY_TOO_MANY_REQUESTS"] = "Слишком много запросов стратегии SelfBot. Повторите попытку чуть позже.",
   ["strategy.reason.UNKNOWN"] = "Команда стратегии завершилась ошибкой по неизвестной причине.",
   -- MB_CREATOR_INIT_AUTO_FEEDBACK_I18N_V1_BEGIN
+  ["inventory.equip_observe.unequipped"] = "[MultiBot] %s снимает: %s",
   ["creator.init_auto.feedback.equipped"] = "[MultiBot] %s экипирует: %s",
   -- MB_CREATOR_INIT_AUTO_FEEDBACK_I18N_V1_END
   ["info.outfits.feedback_equip"] = "Комплект «%s» экипирован.",

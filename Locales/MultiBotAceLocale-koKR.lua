@@ -49,6 +49,8 @@ local koKRValues = {
   ["talent.apply.failed"] = "%s에게 특성을 적용하지 못했습니다. (%s)",
   -- MB_TALENT_APPLY_I18N_V1_END
   -- MB_SELFACTION_I18N_V1_BEGIN
+  ["info.every.summon.failed"] = "[MultiBot] %s 소환 실패 (%s).",
+  ["info.every.summon.send_failed"] = "[MultiBot] %s 소환 요청을 보내지 못했습니다 (%s).",
   ["selfaction.bridge_unavailable"] = "브리지를 사용할 수 없어 SelfBot 동작을 보내지 못했습니다.",
   ["selfaction.failed"] = "SelfBot 동작 실패: %s",
   ["selfaction.send_failed"] = "SelfBot 동작을 보내지 못했습니다: %s",
@@ -773,6 +775,7 @@ local koKRValues = {
   ["tips.quests.incomplist"] = "현재 봇의 퀘스트 목록",
   ["tips.quests.complist"] = "완료한 봇 퀘스트 목록",
   ["tips.quests.alllist"] = "모든 봇의 퀘스트 목록",
+  ["info.quests.gob_search_unavailable"] = "[MultiBot] 게임 오브젝트 검색을 사용할 수 없습니다.",
   ["info.quests.bridge_unavailable"] = "[MultiBot] Bridge를 통해 퀘스트 목록을 사용할 수 없습니다. 채팅 대체 전송을 사용하지 않았습니다.",
   ["tips.quests.compheader"] = "** 완료한 퀘스트 **",
   ["tips.quests.incompheader"] = "** 미완료 퀘스트 **",
@@ -1358,6 +1361,7 @@ local koKRValues = {
   ["strategy.reason.SELF_STRATEGY_TOO_MANY_REQUESTS"] = "SelfBot 전략 요청이 너무 많습니다. 잠시 후 다시 시도하세요.",
   ["strategy.reason.UNKNOWN"] = "알 수 없는 이유로 전략 명령이 실패했습니다.",
   -- MB_CREATOR_INIT_AUTO_FEEDBACK_I18N_V1_BEGIN
+  ["inventory.equip_observe.unequipped"] = "[MultiBot] %s 장비 해제: %s",
   ["creator.init_auto.feedback.equipped"] = "[MultiBot] %s 장착: %s",
   -- MB_CREATOR_INIT_AUTO_FEEDBACK_I18N_V1_END
   ["info.outfits.feedback_equip"] = "장비 세트 \"%s\": 장착 완료.",

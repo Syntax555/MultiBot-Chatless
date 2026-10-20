@@ -49,6 +49,8 @@ local enGBValues = {
   ["talent.apply.failed"] = "Failed to apply talents to %s (%s).",
   -- MB_TALENT_APPLY_I18N_V1_END
   -- MB_SELFACTION_I18N_V1_BEGIN
+  ["info.every.summon.failed"] = "[MultiBot] Summoning %s failed (%s).",
+  ["info.every.summon.send_failed"] = "[MultiBot] Could not send summon request for %s (%s).",
   ["selfaction.bridge_unavailable"] = "The bridge is unavailable: the SelfBot action was not sent.",
   ["selfaction.failed"] = "SelfBot action failed: %s",
   ["selfaction.send_failed"] = "The SelfBot action could not be sent: %s",
@@ -779,6 +781,7 @@ local enGBValues = {
   ["tips.quests.incomplist"] = "Current Quests from Bot(s)",
   ["tips.quests.complist"] = "List of completed Quests for the Bot(s)",
   ["tips.quests.alllist"] = "All Quests for Bot(s)",
+  ["info.quests.gob_search_unavailable"] = "[MultiBot] Game-object search is unavailable.",
   ["info.quests.bridge_unavailable"] = "[MultiBot] Quest lists are unavailable through the Bridge. No chat fallback was sent.",
   ["tips.quests.compheader"] = "** Complete Quests **",
   ["tips.quests.incompheader"] = "** Incomplete Quests **",
@@ -1372,6 +1375,7 @@ local enGBValues = {
   ["strategy.reason.SELF_STRATEGY_TOO_MANY_REQUESTS"] = "Too many SelfBot strategy requests. Try again in a moment.",
   ["strategy.reason.UNKNOWN"] = "The strategy command failed for an unknown reason.",
   -- MB_CREATOR_INIT_AUTO_FEEDBACK_I18N_V1_BEGIN
+  ["inventory.equip_observe.unequipped"] = "[MultiBot] %s unequips: %s",
   ["creator.init_auto.feedback.equipped"] = "[MultiBot] %s equips: %s",
   -- MB_CREATOR_INIT_AUTO_FEEDBACK_I18N_V1_END
   ["info.outfits.feedback_equip"] = "Outfit \"%s\" equipped.",

@@ -49,6 +49,8 @@ local frFRValues = {
   ["talent.apply.failed"] = "Échec de l'application des talents à %s (%s).",
   -- MB_TALENT_APPLY_I18N_V1_END
   -- MB_SELFACTION_I18N_V1_BEGIN
+  ["info.every.summon.failed"] = "[MultiBot] Échec de l’invocation de %s (%s).",
+  ["info.every.summon.send_failed"] = "[MultiBot] Impossible d’envoyer la demande d’invocation de %s (%s).",
   ["selfaction.bridge_unavailable"] = "Le bridge est indisponible : l'action SelfBot n'a pas été envoyée.",
   ["selfaction.failed"] = "Échec de l'action SelfBot : %s",
   ["selfaction.send_failed"] = "L'action SelfBot n'a pas pu être envoyée : %s",
@@ -777,6 +779,7 @@ local frFRValues = {
   ["tips.quests.incomplist"] = "Quêtes en cours du/des bot(s)",
   ["tips.quests.complist"] = "Liste des quêtes terminées du/des bot(s)",
   ["tips.quests.alllist"] = "Toutes les quêtes du/des bot(s)",
+  ["info.quests.gob_search_unavailable"] = "[MultiBot] La recherche d’objets du jeu est indisponible.",
   ["info.quests.bridge_unavailable"] = "[MultiBot] Les listes de quêtes sont indisponibles via le Bridge. Aucun fallback chat n'a été envoyé.",
   ["tips.quests.compheader"] = "** Quêtes Terminées **",
   ["tips.quests.incompheader"] = "** Quêtes Incomplètes **",
@@ -1369,6 +1372,7 @@ local frFRValues = {
   ["strategy.reason.SELF_STRATEGY_TOO_MANY_REQUESTS"] = "Trop de requêtes de stratégie SelfBot. Réessayez dans un instant.",
   ["strategy.reason.UNKNOWN"] = "La commande de stratégie a échoué pour une raison inconnue.",
   -- MB_CREATOR_INIT_AUTO_FEEDBACK_I18N_V1_BEGIN
+  ["inventory.equip_observe.unequipped"] = "[MultiBot] %s déséquipe : %s",
   ["creator.init_auto.feedback.equipped"] = "[MultiBot] %s équipe : %s",
   -- MB_CREATOR_INIT_AUTO_FEEDBACK_I18N_V1_END
   ["info.outfits.feedback_equip"] = "Tenue « %s » équipée.",

@@ -414,7 +414,30 @@ MultiBot.addEvery = function(pFrame, pCombat, pNormal)
 	if not isSelfBot then
 		pFrame.addButton("Summon", 94, 0, "ability_hunter_beastcall", MultiBot.L("tips.every.summon"))
 		.doLeft = function(pButton)
-			MultiBot.Comm.RunBotSummon(pButton.getName())
+			local botName = pButton.getName()
+			local comm = MultiBot and MultiBot.Comm or nil
+			local function reportSummonFailure(key, reason)
+				local message = string.format(MultiBot.L(key), tostring(botName or ""), tostring(reason or "UNKNOWN"))
+				if comm and type(comm.ShowSystemMessage) == "function" then
+					comm.ShowSystemMessage(message)
+				elseif UIErrorsFrame and UIErrorsFrame.AddMessage then
+					UIErrorsFrame:AddMessage(message, 1, 0.3, 0.3, 1)
+				end
+			end
+
+			if not (comm and type(comm.RunBotSummon) == "function") then
+				reportSummonFailure("info.every.summon.send_failed", "UNAVAILABLE")
+				return
+			end
+			local token = comm.RunBotSummon(botName, function(result)
+				if type(result) == "table" and result.status ~= "ok" then
+					reportSummonFailure("info.every.summon.failed", result.reason)
+				end
+			end)
+			if not token then
+				local reason = MultiBot and MultiBot.bridge and MultiBot.bridge.lastError or "UNAVAILABLE"
+				reportSummonFailure("info.every.summon.send_failed", reason)
+			end
 		end
 
 		pFrame.addButton("Uninvite", 124, 0, "inv_misc_grouplooking", MultiBot.L("tips.every.uninvite")).doShow()
@@ -579,8 +602,13 @@ MultiBot.addEvery = function(pFrame, pCombat, pNormal)
 		else
 			local tUnits = MultiBot.frames["MultiBar"].frames["Units"]
 			for key, value in pairs(MultiBot.index.actives) do
-				if(tUnits.buttons[value].name ~= UnitName("player")) then
-					tUnits.frames[value].getButton("Spellbook").setDisable()
+				local activeButton = tUnits.buttons[value]
+				if(activeButton and activeButton.name ~= UnitName("player")) then
+					local activeFrame = tUnits.frames[value]
+					local actionButton = activeFrame and activeFrame.getButton and activeFrame.getButton("Spellbook") or nil
+					if(actionButton and actionButton.setDisable) then
+						actionButton.setDisable()
+					end
 				end
 			end
 
@@ -620,8 +648,13 @@ MultiBot.addEvery = function(pFrame, pCombat, pNormal)
 
 			local tUnits = MultiBot.frames["MultiBar"].frames["Units"]
 			for key, value in pairs(MultiBot.index.actives) do
-				if(tUnits.buttons[value].name ~= UnitName("player")) then
-					tUnits.frames[value].getButton("Talent").setDisable()
+				local activeButton = tUnits.buttons[value]
+				if(activeButton and activeButton.name ~= UnitName("player")) then
+					local activeFrame = tUnits.frames[value]
+					local actionButton = activeFrame and activeFrame.getButton and activeFrame.getButton("Talent") or nil
+					if(actionButton and actionButton.setDisable) then
+						actionButton.setDisable()
+					end
 				end
 			end
 

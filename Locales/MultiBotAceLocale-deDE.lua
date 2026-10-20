@@ -49,6 +49,8 @@ local deDEValues = {
   ["talent.apply.failed"] = "Talente konnten nicht auf %s angewendet werden (%s).",
   -- MB_TALENT_APPLY_I18N_V1_END
   -- MB_SELFACTION_I18N_V1_BEGIN
+  ["info.every.summon.failed"] = "[MultiBot] Beschwörung von %s fehlgeschlagen (%s).",
+  ["info.every.summon.send_failed"] = "[MultiBot] Beschwörungsanfrage für %s konnte nicht gesendet werden (%s).",
   ["selfaction.bridge_unavailable"] = "Die Bridge ist nicht verfügbar: Die SelfBot-Aktion wurde nicht gesendet.",
   ["selfaction.failed"] = "SelfBot-Aktion fehlgeschlagen: %s",
   ["selfaction.send_failed"] = "Die SelfBot-Aktion konnte nicht gesendet werden: %s",
@@ -777,6 +779,7 @@ local deDEValues = {
   ["tips.quests.incomplist"] = "Aktuelle Quests vom Bot(s)",
   ["tips.quests.complist"] = "Liste der abgeschlossenen Quests des/der Bot(s)",
   ["tips.quests.alllist"] = "Alle Quests des/der Bot(s)",
+  ["info.quests.gob_search_unavailable"] = "[MultiBot] Die Suche nach Spielobjekten ist nicht verfügbar.",
   ["info.quests.bridge_unavailable"] = "[MultiBot] Questlisten sind über die Bridge nicht verfügbar. Es wurde kein Chat-Fallback gesendet.",
   ["tips.quests.compheader"] = "** Abgeschlossene Quests **",
   ["tips.quests.incompheader"] = "** Unvollständige Quests **",
@@ -1369,6 +1372,7 @@ local deDEValues = {
   ["strategy.reason.SELF_STRATEGY_TOO_MANY_REQUESTS"] = "Zu viele SelfBot-Strategieanfragen. Versuche es gleich erneut.",
   ["strategy.reason.UNKNOWN"] = "Der Strategiebefehl ist aus unbekanntem Grund fehlgeschlagen.",
   -- MB_CREATOR_INIT_AUTO_FEEDBACK_I18N_V1_BEGIN
+  ["inventory.equip_observe.unequipped"] = "[MultiBot] %s legt ab: %s",
   ["creator.init_auto.feedback.equipped"] = "[MultiBot] %s rüstet aus: %s",
   -- MB_CREATOR_INIT_AUTO_FEEDBACK_I18N_V1_END
   ["info.outfits.feedback_equip"] = "Outfit „%s“ ausgerüstet.",

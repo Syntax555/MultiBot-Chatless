@@ -49,6 +49,8 @@ local zhCNValues = {
   ["talent.apply.failed"] = "为 %s 应用天赋失败（%s）。",
   -- MB_TALENT_APPLY_I18N_V1_END
   -- MB_SELFACTION_I18N_V1_BEGIN
+  ["info.every.summon.failed"] = "[MultiBot] 召唤 %s 失败（%s）。",
+  ["info.every.summon.send_failed"] = "[MultiBot] 无法发送召唤 %s 的请求（%s）。",
   ["selfaction.bridge_unavailable"] = "Bridge 不可用：SelfBot 操作未发送。",
   ["selfaction.failed"] = "SelfBot 操作失败：%s",
   ["selfaction.send_failed"] = "无法发送 SelfBot 操作：%s",
@@ -774,6 +776,7 @@ local zhCNValues = {
   ["tips.quests.incomplist"] = "当前机器人任务列表",
   ["tips.quests.complist"] = "机器人已完成任务列表",
   ["tips.quests.alllist"] = "机器人所有任务",
+  ["info.quests.gob_search_unavailable"] = "[MultiBot] 游戏物体搜索不可用。",
   ["info.quests.bridge_unavailable"] = "[MultiBot] 无法通过 Bridge 获取任务列表。未通过聊天备用通道发送。",
   ["tips.quests.compheader"] = "** 已完成任务 **",
   ["tips.quests.incompheader"] = "** 未完成任务 **",
@@ -1367,6 +1370,7 @@ local zhCNValues = {
   ["strategy.reason.SELF_STRATEGY_TOO_MANY_REQUESTS"] = "SelfBot 策略请求过多，请稍后重试。",
   ["strategy.reason.UNKNOWN"] = "策略命令因未知原因失败。",
   -- MB_CREATOR_INIT_AUTO_FEEDBACK_I18N_V1_BEGIN
+  ["inventory.equip_observe.unequipped"] = "[MultiBot] %s 卸下：%s",
   ["creator.init_auto.feedback.equipped"] = "[MultiBot] %s 装备：%s",
   -- MB_CREATOR_INIT_AUTO_FEEDBACK_I18N_V1_END
   ["info.outfits.feedback_equip"] = "配装“%s”已装备。",
