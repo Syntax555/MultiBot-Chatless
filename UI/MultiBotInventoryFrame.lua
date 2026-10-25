@@ -1337,12 +1337,31 @@ local function disableOtherInventoryButtons(activeBotName)
     end
 end
 
+local function cancelInventoryMerchantPurchase(enteringBuyMode)
+    if not enteringBuyMode and (not MultiBot.inventory or MultiBot.inventory.action ~= "b") then
+        return
+    end
+
+    -- A delayed confirmation must not buy for a different character after a mode/window change.
+    StaticPopup_Hide("CONFIRM_HIGH_COST_ITEM")
+    StaticPopup_Hide("CONFIRM_PURCHASE_TOKEN_ITEM")
+    if GetCursorInfo() == "merchant" then
+        ClearCursor()
+    end
+    if StackSplitFrame then
+        StackSplitFrame:Hide()
+    end
+end
+
 local function setInventoryBotName(botName)
     local inventory = MultiBot.inventory
     if not inventory then
         return
     end
 
+    if inventory.name ~= (botName or "") then
+        cancelInventoryMerchantPurchase()
+    end
     inventory.name = botName or ""
 
     if MultiBot.inventoryBuybackFrame and MultiBot.inventoryBuybackFrame.botName ~= "" and
@@ -1516,6 +1535,7 @@ local function setInventoryActionState(buttonKey, options)
         CancelTrade()
     end
 
+    cancelInventoryMerchantPurchase(nextState and nextState.value == "b")
     inventory.action = nextState and nextState.value or ""
     disableActionModes(buttonKey)
 
@@ -2334,6 +2354,7 @@ function MultiBot.InitializeInventoryFrame()
     end)
     window:Hide()
     window.frame:HookScript("OnHide", function()
+        cancelInventoryMerchantPurchase()
         syncInventoryButtonState(false)
         local current = MultiBot.inventory
         if current and current.clearItemMoveDrag then

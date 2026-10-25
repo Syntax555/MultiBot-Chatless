@@ -473,6 +473,55 @@ local function runBridgeInventoryItemAction(action, button, botName, options)
     return true
 end
 
+local function getMerchantInventoryBotName()
+    local inventory = MultiBot.inventory
+    if inventory and inventory.action == "b" and inventory.name ~= ""
+        and inventory.IsVisible and inventory:IsVisible() then
+        return inventory.name
+    end
+end
+
+local buyMerchantItem = BuyMerchantItem
+BuyMerchantItem = function(index, count, ...)
+    local botName = getMerchantInventoryBotName()
+    if not botName then
+        return buyMerchantItem(index, count, ...)
+    end
+
+    local link = GetMerchantItemLink(index)
+    local itemId = link and string.match(link, "item:(%d+)")
+    if not runBridgeInventoryItemAction("BUY_ITEM", { item = { id = itemId } }, botName, { count = count or 1 }) then
+        addInventorySystemMessage(string.format(
+            inventoryItemL("inventory.item_action.failed", "%s failed."),
+            inventoryItemL("inventory.action.BUY_ITEM", "Buy item")
+        ))
+    end
+end
+
+local pickupMerchantItem = PickupMerchantItem
+PickupMerchantItem = function(index, ...)
+    if not getMerchantInventoryBotName() or not index or index <= 0 then
+        return pickupMerchantItem(index, ...)
+    end
+
+    local _, texture, price, count, _, _, extendedCost = GetMerchantItemInfo(index)
+    local button = {
+        GetID = function() return index end,
+        texture = texture,
+        price = price,
+        count = count,
+        extendedCost = extendedCost,
+        link = GetMerchantItemLink(index),
+    }
+    -- Cursor purchases must keep the native price/currency confirmation.
+    if extendedCost then
+        return MerchantFrame_ConfirmExtendedItemCost(button)
+    elseif price and price >= MERCHANT_HIGH_PRICE_COST then
+        return MerchantFrame_ConfirmHighCostItem(button)
+    end
+    return BuyMerchantItem(index)
+end
+
 local function runBridgeInventoryItemDepositExact(action, button, botName)
     if not action or action == "" or not button or not button.item or not botName or botName == "" then
         return false
