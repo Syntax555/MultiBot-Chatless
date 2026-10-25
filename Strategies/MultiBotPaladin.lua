@@ -1,7 +1,7 @@
 MultiBot.addPaladin = function(pFrame, pCombat, pNormal)
 	pFrame.addButton("Heal", 0, 0, "spell_holy_aspiration", MultiBot.L("tips.paladin.heal")).setDisable()
 	.doLeft = function(pButton)
-		if(MultiBot.OnOffUnitStrategy(pButton, "co +heal,?", "co -heal,?", pButton.getName())) then
+		if(MultiBot.OnOffUnitStrategy(pButton, "co +holy,?", "co -holy,?", pButton.getName())) then
 			pButton.getButton("Tank").setDisable()
 			pButton.getButton("Dps").setDisable()
 		end
@@ -311,7 +311,7 @@ MultiBot.addPaladin = function(pFrame, pCombat, pNormal)
 
 	dpsFrame.addButton("Dps", 0, 52, "spell_holy_divinepurpose", MultiBot.L("tips.paladin.dps.dps")).setDisable()
 	.doLeft = function(pButton)
-		if(MultiBot.OnOffUnitStrategy(pButton, "co +dps,?", "co -dps,?", pButton.getName())) then
+		if(MultiBot.OnOffUnitStrategy(pButton, "co +ret,?", "co -ret,?", pButton.getName())) then
 			pButton.getButton("Heal").setDisable()
 			pButton.getButton("Tank").setDisable()
 		end
@@ -358,7 +358,7 @@ MultiBot.addPaladin = function(pFrame, pCombat, pNormal)
 
 	pFrame.addButton("Tank", -180, 0, "ability_warrior_shieldmastery", MultiBot.L("tips.paladin.tank")).setDisable()
 	.doLeft = function(pButton)
-		if(MultiBot.OnOffUnitStrategy(pButton, "co +tank,?", "co -tank,?", pButton.getName())) then
+		if(MultiBot.OnOffUnitStrategy(pButton, "co +prot,?", "co -prot,?", pButton.getName())) then
 			pButton.getButton("Heal").setDisable()
 			pButton.getButton("Dps").setDisable()
 		end
@@ -373,9 +373,9 @@ MultiBot.addPaladin = function(pFrame, pCombat, pNormal)
 
 	-- STRATEGIES --
 
-	if(MultiBot.hasStrategy(pCombat, "dps")) then pFrame.getButton("Dps").setEnable() end
-	if(MultiBot.hasStrategy(pCombat, "heal")) then pFrame.getButton("Heal").setEnable() end
-	if(MultiBot.hasStrategy(pCombat, "tank")) then pFrame.getButton("Tank").setEnable() end
+	if(MultiBot.hasStrategy(pCombat, "ret")) then pFrame.getButton("Dps").setEnable() end
+	if(MultiBot.hasStrategy(pCombat, "holy")) then pFrame.getButton("Heal").setEnable() end
+	if(MultiBot.hasStrategy(pCombat, "prot")) then pFrame.getButton("Tank").setEnable() end
 	if(MultiBot.hasStrategy(pCombat, "dps aoe")) then pFrame.getButton("DpsAoe").setEnable() end
 	if(MultiBot.hasStrategy(pCombat, "offheal")) then pFrame.getButton("OffHeal").setEnable() end
 	if(MultiBot.hasStrategy(pCombat, "healer dps")) then pFrame.getButton("HealerDps").setEnable() end

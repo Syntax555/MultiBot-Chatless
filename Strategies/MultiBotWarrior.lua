@@ -41,7 +41,7 @@ MultiBot.addWarrior = function(pFrame, pCombat, pNormal)
 
 	pFrame.addButton("Tank", -60, 0, "ability_warrior_shieldmastery", MultiBot.L("tips.warrior.tank")).setDisable()
 	.doLeft = function(pButton)
-		MultiBot.OnOffUnitStrategy(pButton, "co +tank,?", "co -tank,?", pButton.getName())
+		MultiBot.OnOffUnitStrategy(pButton, "co +prot,?", "co -prot,?", pButton.getName())
 	end
 
 	-- TANK FACE --
@@ -57,5 +57,5 @@ MultiBot.addWarrior = function(pFrame, pCombat, pNormal)
 	if(MultiBot.hasStrategy(pCombat, "dps assist")) then pFrame.getButton("DpsAssist").setEnable() end
 	if(MultiBot.hasStrategy(pCombat, "tank assist")) then pFrame.getButton("TankAssist").setEnable() end
 	if(MultiBot.hasStrategy(pCombat, "tank face")) then pFrame.getButton("TankFace").setEnable() end
-	if(MultiBot.hasStrategy(pCombat, "tank")) then pFrame.getButton("Tank").setEnable() end
+	if(MultiBot.hasStrategy(pCombat, "prot")) then pFrame.getButton("Tank").setEnable() end
 end
