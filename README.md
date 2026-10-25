@@ -1,3 +1,25 @@
+## mod-playerbots-portable fork
+
+This fork carries what [mod-playerbots-portable](https://github.com/Syntax555/mod-playerbots-portable) needs on top of [Wishmaster117/MultiBot-Chatless](https://github.com/Wishmaster117/MultiBot-Chatless). Work happens on `main`; every push publishes `MultiBot-Chatless-latest.zip` in the [Latest release](https://github.com/Syntax555/MultiBot-Chatless/releases/latest).
+
+Close WoW and extract the ZIP into `Interface/AddOns/` so that `Interface/AddOns/MultiBot/MultiBot.toc` exists. Replace an older `MultiBot` folder; your settings in `WTF/` are kept.
+
+Use it with the matching server from the [mod-playerbots-portable Latest release](https://github.com/Syntax555/mod-playerbots-portable/releases/latest), which provides the MultiBot Bridge.
+
+Changes on `main`:
+
+- Shows bot money in gold, silver and copper.
+- Initializes the options panel through the supported fallback and keeps saved settings.
+- Inspects bot talents through EraTalents on realms with historical Vanilla/TBC trees.
+- Toggles the paladin, priest and warrior strategies the bots actually use.
+- Buys from merchants for the selected altbot with that bot's own gold.
+- Loads LibDataBroker before LibDBIcon.
+- Reads the bridge's spell id and skip flag, so the bot spellbook is filled.
+
+The server pins a tested commit of `main` in its `versions.lock.json`. Upstream updates are merged into `main`; the original README follows.
+
+---
+
 <p align="center">
   <img width="1024" height="1024" alt="MultiBot Chatless" src="https://github.com/user-attachments/assets/08aa1768-f5c2-49ce-9fe0-a22adb184ce7" />
 </p>
