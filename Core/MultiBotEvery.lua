@@ -578,6 +578,7 @@ MultiBot.addEvery = function(pFrame, pCombat, pNormal)
 
 	pFrame.addButton("Talent", 304, 0, "ability_marksmanship", MultiBot.L("tips.every.talent")).setDisable()
 	.doLeft = function(pButton)
+		if MultiBot.OpenEraTalentInspect and MultiBot.OpenEraTalentInspect(pButton.getName(), true) then return end
 		if(pButton.state) then
 			pButton.setDisable()
 			MultiBot.talent:Hide()
