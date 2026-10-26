@@ -68,7 +68,7 @@ local function scenario(locale, mutation)
   end
   function aceLocale:GetLocale() return locales[locale] or defaultLocale end
   local aceGUI = {}
-  function aceGUI:Create(kind)
+  function aceGUI.Create(_, kind)
     assert(kind == "Window")
     local widget = { frame = object(), content = object() }
     function widget:SetTitle(title) self.title = title end
@@ -245,7 +245,7 @@ local function scenario(locale, mutation)
     assert(not spec.busy and not MultiBot.bridge.combatProfileCommands[applyToken],
         "protocol rejection left application controls locked")
   end
-  token = request()
+  request()
   comm.MarkDisconnected("fixture")
   assert(not spec.pending and not spec.busy and next(MultiBot.bridge.combatProfileCommands) == nil,
       "disconnect left profile requests pending")
