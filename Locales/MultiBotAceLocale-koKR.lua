@@ -4,6 +4,18 @@ if type(register) ~= "function" then
 end
 
 local koKRValues = {
+  -- MB_ENCHANT_DIAGNOSTIC_I18N_V1_BEGIN
+  ["debug.enchant.usage"] = "사용법: /mbdebug enchant [봇] (또는 봇을 대상으로 선택)",
+  ["debug.enchant.bridge_unavailable"] = "Bridge를 사용할 수 없습니다.",
+  ["debug.enchant.unavailable"] = "마법부여 진단을 사용할 수 없습니다.",
+  ["debug.enchant.send_failed"] = "마법부여 확인 요청을 보낼 수 없습니다.",
+  ["debug.enchant.requested"] = "%s의 마법부여 확인을 요청했습니다.",
+  ["debug.enchant.result"] = "%s 마법부여 | 주무기: 아이템 %u, 임시 마법부여 %u, 지속 시간 %u ms | 보조무기: 아이템 %u, 임시 마법부여 %u, 지속 시간 %u ms",
+  ["debug.enchant.status.BOT_NOT_VISIBLE"] = "%s 봇을 찾을 수 없거나 현재 지도에서 접근할 수 없습니다.",
+  ["debug.enchant.status.RATE_LIMIT"] = "%s의 마법부여 확인 요청이 너무 많습니다. 잠시 후 다시 시도하세요.",
+  ["debug.enchant.status.FORBIDDEN"] = "%s의 마법부여를 확인할 권한이 없습니다.",
+  ["debug.enchant.status.UNKNOWN"] = "%s의 마법부여를 확인할 수 없습니다.",
+  -- MB_ENCHANT_DIAGNOSTIC_I18N_V1_END
   -- MB_RAIDUS_POOL_DELETE_I18N_V1_BEGIN
   ["raidus.pool.delete.confirm"] = "Raidus 풀에서 %s 캐릭터를 제거하시겠습니까?\n\nMultiBot에 저장된 항목만 삭제됩니다. 서버의 캐릭터는 삭제되지 않습니다.",
   ["tips.raidus.pool.interactions"] = "|cffffffff왼쪽 클릭: 끌어서 놓기|r\n|cffff4444Shift + 오른쪽 클릭: Raidus 풀에서 제거|r",
@@ -208,6 +220,7 @@ local koKRValues = {
   ["inventory.container.backpack"] = "배낭",
   ["inventory.container.bag"] = "가방 %d",
   ["inventory.container.keyring"] = "열쇠고리",
+  ["inventory.unavailable.bot"] = "[MultiBot] %s의 소지품에 접근할 수 없습니다. 봇이 다른 지도에 있거나, 너무 멀리 있거나, 사용할 수 없는 상태일 수 있습니다.",
   -- MB_VENDOR_BUYBACK_V1_LOCALE_BEGIN
   ["tips.inventory.buyback"] = "최근 판매한 아이템 다시 사기",
   ["inventory.buyback.title"] = "재구매 - %s",

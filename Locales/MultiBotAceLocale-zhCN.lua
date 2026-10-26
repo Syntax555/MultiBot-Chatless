@@ -4,6 +4,18 @@ if type(register) ~= "function" then
 end
 
 local zhCNValues = {
+  -- MB_ENCHANT_DIAGNOSTIC_I18N_V1_BEGIN
+  ["debug.enchant.usage"] = "用法：/mbdebug enchant [机器人]（或选中机器人）",
+  ["debug.enchant.bridge_unavailable"] = "Bridge 不可用。",
+  ["debug.enchant.unavailable"] = "附魔诊断不可用。",
+  ["debug.enchant.send_failed"] = "无法发送附魔检查请求。",
+  ["debug.enchant.requested"] = "已请求检查 %s 的附魔。",
+  ["debug.enchant.result"] = "%s 的附魔 | 主手：物品 %u，临时附魔 %u，持续 %u 毫秒 | 副手：物品 %u，临时附魔 %u，持续 %u 毫秒",
+  ["debug.enchant.status.BOT_NOT_VISIBLE"] = "找不到机器人 %s，或该机器人在当前地图无法访问。",
+  ["debug.enchant.status.RATE_LIMIT"] = "%s 的附魔检查请求过于频繁，请稍后再试。",
+  ["debug.enchant.status.FORBIDDEN"] = "你无权查看 %s 的附魔。",
+  ["debug.enchant.status.UNKNOWN"] = "无法查看 %s 的附魔。",
+  -- MB_ENCHANT_DIAGNOSTIC_I18N_V1_END
   -- MB_RAIDUS_POOL_DELETE_I18N_V1_BEGIN
   ["raidus.pool.delete.confirm"] = "从 Raidus 池中移除 %s？\n\n此操作只会删除 MultiBot 保存的条目，不会删除服务器上的角色。",
   ["tips.raidus.pool.interactions"] = "|cffffffff左键：拖放|r\n|cffff4444Shift + 右键：从 Raidus 池中移除|r",
@@ -208,6 +220,7 @@ local zhCNValues = {
   ["inventory.container.backpack"] = "背包",
   ["inventory.container.bag"] = "背包 %d",
   ["inventory.container.keyring"] = "钥匙链",
+  ["inventory.unavailable.bot"] = "[MultiBot] 无法访问%s的背包。机器人可能位于其他地图、距离过远或当前不可用。",
   -- MB_VENDOR_BUYBACK_V1_LOCALE_BEGIN
   ["tips.inventory.buyback"] = "购回最近出售的物品",
   ["inventory.buyback.title"] = "购回 - %s",

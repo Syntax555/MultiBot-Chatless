@@ -4,6 +4,18 @@ if type(register) ~= "function" then
 end
 
 local deDEValues = {
+  -- MB_ENCHANT_DIAGNOSTIC_I18N_V1_BEGIN
+  ["debug.enchant.usage"] = "Verwendung: /mbdebug enchant [Bot] (oder einen Bot anvisieren)",
+  ["debug.enchant.bridge_unavailable"] = "Die Bridge ist nicht verfügbar.",
+  ["debug.enchant.unavailable"] = "Die Verzauberungsdiagnose ist nicht verfügbar.",
+  ["debug.enchant.send_failed"] = "Die Verzauberungsabfrage konnte nicht gesendet werden.",
+  ["debug.enchant.requested"] = "Verzauberungsabfrage für %s angefordert.",
+  ["debug.enchant.result"] = "Verzauberungen von %s | Haupthand: Gegenstand %u, temporäre Verzauberung %u, Dauer %u ms | Nebenhand: Gegenstand %u, temporäre Verzauberung %u, Dauer %u ms",
+  ["debug.enchant.status.BOT_NOT_VISIBLE"] = "Bot %s wurde nicht gefunden oder ist auf dieser Karte nicht erreichbar.",
+  ["debug.enchant.status.RATE_LIMIT"] = "Zu viele Verzauberungsabfragen für %s. Bitte kurz warten.",
+  ["debug.enchant.status.FORBIDDEN"] = "Du darfst die Verzauberungen von %s nicht einsehen.",
+  ["debug.enchant.status.UNKNOWN"] = "Die Verzauberungen von %s können nicht geprüft werden.",
+  -- MB_ENCHANT_DIAGNOSTIC_I18N_V1_END
   -- MB_RAIDUS_POOL_DELETE_I18N_V1_BEGIN
   ["raidus.pool.delete.confirm"] = "%s aus dem Raidus-Pool entfernen?\n\nDadurch wird nur der von MultiBot gespeicherte Eintrag entfernt. Der Servercharakter wird nicht gelöscht.",
   ["tips.raidus.pool.interactions"] = "|cffffffffLinksklick: ziehen und ablegen|r\n|cffff4444Umschalt + Rechtsklick: aus dem Raidus-Pool entfernen|r",
@@ -208,6 +220,7 @@ local deDEValues = {
   ["inventory.container.backpack"] = "Rucksack",
   ["inventory.container.bag"] = "Tasche %d",
   ["inventory.container.keyring"] = "Schlüsselbund",
+  ["inventory.unavailable.bot"] = "[MultiBot] Inventar von %s nicht zugänglich. Der Bot könnte auf einer anderen Karte, zu weit entfernt oder nicht verfügbar sein.",
   -- MB_VENDOR_BUYBACK_V1_LOCALE_BEGIN
   ["tips.inventory.buyback"] = "Kürzlich verkaufte Gegenstände zurückkaufen",
   ["inventory.buyback.title"] = "Rückkauf - %s",

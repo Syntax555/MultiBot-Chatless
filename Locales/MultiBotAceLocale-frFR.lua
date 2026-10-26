@@ -4,6 +4,18 @@ if type(register) ~= "function" then
 end
 
 local frFRValues = {
+  -- MB_ENCHANT_DIAGNOSTIC_I18N_V1_BEGIN
+  ["debug.enchant.usage"] = "Utilisation : /mbdebug enchant [bot] (ou cibler un bot)",
+  ["debug.enchant.bridge_unavailable"] = "Le Bridge est indisponible.",
+  ["debug.enchant.unavailable"] = "Le diagnostic des enchantements est indisponible.",
+  ["debug.enchant.send_failed"] = "Impossible d'envoyer la demande de diagnostic des enchantements.",
+  ["debug.enchant.requested"] = "Diagnostic des enchantements demandé pour %s.",
+  ["debug.enchant.result"] = "Enchantements de %s | Main droite : objet %u, enchantement temporaire %u, durée %u ms | Main gauche : objet %u, enchantement temporaire %u, durée %u ms",
+  ["debug.enchant.status.BOT_NOT_VISIBLE"] = "Le bot %s est introuvable ou inaccessible sur cette carte.",
+  ["debug.enchant.status.RATE_LIMIT"] = "Trop de demandes pour %s. Réessayez dans un instant.",
+  ["debug.enchant.status.FORBIDDEN"] = "Vous n'êtes pas autorisé à consulter les enchantements de %s.",
+  ["debug.enchant.status.UNKNOWN"] = "Impossible de consulter les enchantements de %s.",
+  -- MB_ENCHANT_DIAGNOSTIC_I18N_V1_END
   -- MB_RAIDUS_POOL_DELETE_I18N_V1_BEGIN
   ["raidus.pool.delete.confirm"] = "Supprimer %s du pool Raidus ?\n\nCette action supprime uniquement l'entrée sauvegardée par MultiBot. Le personnage du serveur n'est pas supprimé.",
   ["tips.raidus.pool.interactions"] = "|cffffffffClic gauche : glisser-déposer|r\n|cffff4444Shift + clic droit : supprimer du pool Raidus|r",
@@ -208,6 +220,7 @@ local frFRValues = {
   ["inventory.container.backpack"] = "Sac à dos",
   ["inventory.container.bag"] = "Sac %d",
   ["inventory.container.keyring"] = "Trousseau de clés",
+  ["inventory.unavailable.bot"] = "[MultiBot] Impossible d'accéder à l'inventaire de %s. Le bot peut se trouver sur une autre carte, être trop éloigné ou être indisponible.",
   -- MB_VENDOR_BUYBACK_V1_LOCALE_BEGIN
   ["tips.inventory.buyback"] = "Racheter les objets vendus récemment",
   ["inventory.buyback.title"] = "Rachat - %s",

@@ -4,6 +4,18 @@ if type(register) ~= "function" then
 end
 
 local ruRUValues = {
+  -- MB_ENCHANT_DIAGNOSTIC_I18N_V1_BEGIN
+  ["debug.enchant.usage"] = "Использование: /mbdebug enchant [бот] (или выберите бота целью)",
+  ["debug.enchant.bridge_unavailable"] = "Bridge недоступен.",
+  ["debug.enchant.unavailable"] = "Диагностика зачарований недоступна.",
+  ["debug.enchant.send_failed"] = "Не удалось отправить запрос на проверку зачарований.",
+  ["debug.enchant.requested"] = "Запрошена проверка зачарований для %s.",
+  ["debug.enchant.result"] = "Зачарования %s | Правая рука: предмет %u, временные чары %u, длительность %u мс | Левая рука: предмет %u, временные чары %u, длительность %u мс",
+  ["debug.enchant.status.BOT_NOT_VISIBLE"] = "Бот %s не найден или недоступен на этой карте.",
+  ["debug.enchant.status.RATE_LIMIT"] = "Слишком много проверок зачарований для %s. Повторите попытку позже.",
+  ["debug.enchant.status.FORBIDDEN"] = "У вас нет прав на просмотр зачарований %s.",
+  ["debug.enchant.status.UNKNOWN"] = "Не удалось проверить зачарования %s.",
+  -- MB_ENCHANT_DIAGNOSTIC_I18N_V1_END
   -- MB_RAIDUS_POOL_DELETE_I18N_V1_BEGIN
   ["raidus.pool.delete.confirm"] = "Удалить %s из пула Raidus?\n\nБудет удалена только сохранённая запись MultiBot. Персонаж на сервере не удаляется.",
   ["tips.raidus.pool.interactions"] = "|cffffffffЛКМ: перетащить|r\n|cffff4444Shift + ПКМ: удалить из пула Raidus|r",
@@ -208,6 +220,7 @@ local ruRUValues = {
   ["inventory.container.backpack"] = "Рюкзак",
   ["inventory.container.bag"] = "Сумка %d",
   ["inventory.container.keyring"] = "Связка ключей",
+  ["inventory.unavailable.bot"] = "[MultiBot] Не удаётся получить доступ к инвентарю %s. Бот может находиться на другой карте, слишком далеко или быть недоступен.",
   -- MB_VENDOR_BUYBACK_V1_LOCALE_BEGIN
   ["tips.inventory.buyback"] = "Выкупить недавно проданные предметы",
   ["inventory.buyback.title"] = "Выкуп - %s",

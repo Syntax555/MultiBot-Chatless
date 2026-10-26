@@ -6313,6 +6313,7 @@ function Comm.RequestInventory(name)
     token = token,
     startedAt = safeNow(),
     begun = false,
+    summaryReceived = false,
   }
 
   if not Comm.Send("GET", "INVENTORY~" .. name .. "~" .. token) then
@@ -13708,7 +13709,9 @@ function Comm.HandleAddonMessage(prefix, message, distribution, sender)
     state.connected = true
     state.lastError = nil
 
-    if getActiveInventoryRequest(botName, token) then
+    local active = getActiveInventoryRequest(botName, token)
+    if active then
+      active.summaryReceived = true
       local inventory = getInventoryFrame()
       if inventory and inventory.applySummaryData then
         inventory:applySummaryData({
@@ -13750,19 +13753,34 @@ function Comm.HandleAddonMessage(prefix, message, distribution, sender)
     state.connected = true
     state.lastError = nil
 
-    if getActiveInventoryRequest(botName, token) then
+    local active = getActiveInventoryRequest(botName, token)
+    if active then
       local inventory = getInventoryFrame()
-      local itemsFrame = inventory and inventory.frames and inventory.frames.Items or nil
-      if itemsFrame then
-        if itemsFrame.updateCanvas then
-          itemsFrame:updateCanvas()
+      if not active.summaryReceived then
+        state.lastError = "INV_UNAVAILABLE"
+        local isCurrentVisible = inventory and inventory.IsVisible and inventory:IsVisible()
+            and string.lower(trim(inventory.name)) == string.lower(trim(botName))
+        if isCurrentVisible then
+          if inventory.Hide then
+            inventory:Hide()
+          end
+          Comm.ShowSystemMessage(string.format(
+            L("inventory.unavailable.bot", "[MultiBot] Cannot access %s's inventory. The bot may be on another map, too far away, or unavailable."),
+            trim(botName)))
         end
-        if itemsFrame.updateLayout then
-          itemsFrame:updateLayout()
+      else
+        local itemsFrame = inventory and inventory.frames and inventory.frames.Items or nil
+        if itemsFrame then
+          if itemsFrame.updateCanvas then
+            itemsFrame:updateCanvas()
+          end
+          if itemsFrame.updateLayout then
+            itemsFrame:updateLayout()
+          end
         end
-      end
-      if inventory and inventory.endPayload then
-        inventory:endPayload(trim(botName))
+        if inventory and inventory.endPayload then
+          inventory:endPayload(trim(botName))
+        end
       end
     end
 

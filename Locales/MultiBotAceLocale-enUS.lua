@@ -4,6 +4,18 @@ if type(register) ~= "function" then
 end
 
 local enUSValues = {
+  -- MB_ENCHANT_DIAGNOSTIC_I18N_V1_BEGIN
+  ["debug.enchant.usage"] = "Usage: /mbdebug enchant [bot] (or target a bot)",
+  ["debug.enchant.bridge_unavailable"] = "Bridge is unavailable.",
+  ["debug.enchant.unavailable"] = "Enchantment diagnostics are unavailable.",
+  ["debug.enchant.send_failed"] = "Unable to send the enchantment check.",
+  ["debug.enchant.requested"] = "Enchantment check requested for %s.",
+  ["debug.enchant.result"] = "Enchantments of %s | Main hand: item %u, temporary enchant %u, duration %u ms | Off hand: item %u, temporary enchant %u, duration %u ms",
+  ["debug.enchant.status.BOT_NOT_VISIBLE"] = "Bot %s is not found or is inaccessible on this map.",
+  ["debug.enchant.status.RATE_LIMIT"] = "Too many enchantment checks for %s. Try again shortly.",
+  ["debug.enchant.status.FORBIDDEN"] = "You are not allowed to inspect enchantments for %s.",
+  ["debug.enchant.status.UNKNOWN"] = "Cannot inspect enchantments for %s.",
+  -- MB_ENCHANT_DIAGNOSTIC_I18N_V1_END
   -- MB_RAIDUS_POOL_DELETE_I18N_V1_BEGIN
   ["raidus.pool.delete.confirm"] = "Remove %s from the Raidus pool?\n\nThis removes only the saved MultiBot entry. The server character is not deleted.",
   ["tips.raidus.pool.interactions"] = "|cffffffffLeft-click: drag and drop|r\n|cffff4444Shift + Right-click: remove from the Raidus pool|r",
@@ -208,6 +220,7 @@ local enUSValues = {
   ["inventory.container.backpack"] = "Backpack",
   ["inventory.container.bag"] = "Bag %d",
   ["inventory.container.keyring"] = "Keyring",
+  ["inventory.unavailable.bot"] = "[MultiBot] Cannot access %s's inventory. The bot may be on another map, too far away, or unavailable.",
   -- MB_VENDOR_BUYBACK_V1_LOCALE_BEGIN
   ["tips.inventory.buyback"] = "Buy back recently sold items",
   ["inventory.buyback.title"] = "Buyback - %s",

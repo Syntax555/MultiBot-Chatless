@@ -4,6 +4,18 @@ if type(register) ~= "function" then
 end
 
 local esESValues = {
+  -- MB_ENCHANT_DIAGNOSTIC_I18N_V1_BEGIN
+  ["debug.enchant.usage"] = "Uso: /mbdebug enchant [bot] (o seleccionar un bot)",
+  ["debug.enchant.bridge_unavailable"] = "El Bridge no está disponible.",
+  ["debug.enchant.unavailable"] = "El diagnóstico de encantamientos no está disponible.",
+  ["debug.enchant.send_failed"] = "No se pudo enviar la consulta de encantamientos.",
+  ["debug.enchant.requested"] = "Consulta de encantamientos solicitada para %s.",
+  ["debug.enchant.result"] = "Encantamientos de %s | Mano principal: objeto %u, encantamiento temporal %u, duración %u ms | Mano secundaria: objeto %u, encantamiento temporal %u, duración %u ms",
+  ["debug.enchant.status.BOT_NOT_VISIBLE"] = "No se encuentra al bot %s o no se puede acceder a él en este mapa.",
+  ["debug.enchant.status.RATE_LIMIT"] = "Demasiadas consultas de encantamientos para %s. Inténtalo de nuevo en breve.",
+  ["debug.enchant.status.FORBIDDEN"] = "No tienes permiso para consultar los encantamientos de %s.",
+  ["debug.enchant.status.UNKNOWN"] = "No se pueden consultar los encantamientos de %s.",
+  -- MB_ENCHANT_DIAGNOSTIC_I18N_V1_END
   -- MB_RAIDUS_POOL_DELETE_I18N_V1_BEGIN
   ["raidus.pool.delete.confirm"] = "¿Eliminar a %s del pool de Raidus?\n\nEsta acción elimina únicamente la entrada guardada por MultiBot. El personaje del servidor no se elimina.",
   ["tips.raidus.pool.interactions"] = "|cffffffffClic izquierdo: arrastrar y soltar|r\n|cffff4444Mayús + clic derecho: eliminar del pool de Raidus|r",
@@ -208,6 +220,7 @@ local esESValues = {
   ["inventory.container.backpack"] = "Mochila",
   ["inventory.container.bag"] = "Bolsa %d",
   ["inventory.container.keyring"] = "Llavero",
+  ["inventory.unavailable.bot"] = "[MultiBot] No se puede acceder al inventario de %s. El bot puede estar en otro mapa, demasiado lejos o no estar disponible.",
   -- MB_VENDOR_BUYBACK_V1_LOCALE_BEGIN
   ["tips.inventory.buyback"] = "Recomprar objetos vendidos recientemente",
   ["inventory.buyback.title"] = "Recompra - %s",

@@ -1410,7 +1410,7 @@ local function openInspectForInventoryBot(botName)
     end
 
     local unit = MultiBot.toUnit(botName)
-    if not unit or not UnitExists(unit) then
+    if not unit or not UnitExists(unit) or not CanInspect or not CanInspect(unit, true) then
         return false
     end
 
@@ -1423,10 +1423,6 @@ local function openInspectForInventoryBot(botName)
     end
 
     InspectUnit(unit)
-
-    if InspectFrame and ShowUIPanel and not InspectFrame:IsShown() then
-        ShowUIPanel(InspectFrame)
-    end
 
     return true
 end
