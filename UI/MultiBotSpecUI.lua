@@ -260,6 +260,25 @@ Spec.initialised = true
 
 Spec.pending, Spec.buttons = nil, {}
 
+local function combatProfileName(profile)
+    return MultiBot.L("combat.profile.name." .. profile, profile)
+end
+
+local function combatProfileNotice(bot, result)
+    if not DEFAULT_CHAT_FRAME then return end
+    local ok = result and result.status == "ok"
+    local message
+    if ok then
+        message = string.format(MultiBot.L("combat.profile.applied"), bot, combatProfileName(result.selected),
+            combatProfileName(result.effective))
+    else
+        local reason = result and result.reason or "BRIDGE_UNAVAILABLE"
+        message = string.format(MultiBot.L("combat.profile.failed"), bot,
+            MultiBot.L("combat.profile.reason." .. reason, reason))
+    end
+    DEFAULT_CHAT_FRAME:AddMessage(message, 1, ok and 1 or 0.2, ok and 1 or 0.2)
+end
+
 local SPEC_LEGACY_USAGE_FILTER_TTL = 5
 
 local function specNow()
@@ -443,6 +462,26 @@ function Spec:RequestList(bot, wrapper)
     self.activeWrapper = wrapper
 
     local comm = MultiBot.Comm or nil
+    if comm and comm.IsCombatProfileCapable and comm.IsCombatProfileCapable() then
+        local pending = self.pending
+        pending.combatProfiles = true
+        local request = comm.RequestCombatProfiles(bot, function(result)
+            if self.pending ~= pending then return end
+            if result.status == "ok" then
+                pending.specs, pending.selected, pending.effective = result.profiles, result.selected, result.effective
+                self:BuildDropdown()
+                self.pending = nil
+            else
+                combatProfileNotice(bot, result)
+                self:HideDropdown()
+            end
+        end)
+        if not request then
+            combatProfileNotice(bot)
+            self:HideDropdown()
+        end
+        return
+    end
     local bridgeApplyCapable = comm
         and comm.IsTalentSpecApplyCapable
         and comm.IsTalentSpecApplyCapable()
@@ -783,6 +822,7 @@ local function disableSetTalentsToggle(wrapper)
 end
 
 function Spec:HideDropdown()
+    self.pending = nil
     disableSetTalentsToggle(self.activeWrapper)
     self.activeWrapper = nil
 
@@ -1011,6 +1051,32 @@ local function bindSpecSelection(button, spec, specIndex, build, tip, bot, class
     button:SetScript("OnLeave", GameTooltip_Hide)
 end
 
+local function bindCombatProfile(button, profile, tip, pending)
+    button:SetAlpha(profile == pending.selected and 0.65 or 1)
+    button:SetScript("OnClick", function()
+        if Spec.busy then return end
+        Spec.busy = true
+        local request = MultiBot.Comm.RunCombatProfile(pending.bot, profile, function(result)
+            Spec.busy = false
+            combatProfileNotice(pending.bot, result)
+            if result.status == "ok" and MultiBot.Comm.RequestState then
+                MultiBot.Comm.RequestState(pending.bot)
+            end
+        end)
+        Spec:HideDropdown()
+        if not request then
+            Spec.busy = false
+            combatProfileNotice(pending.bot)
+        end
+    end)
+    button:SetScript("OnEnter", function(owner)
+        GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+        GameTooltip:SetText(tip, 1, 1, 1, nil, true)
+        GameTooltip:Show()
+    end)
+    button:SetScript("OnLeave", GameTooltip_Hide)
+end
+
 function Spec:BuildDropdown()
     if self.busy then
         return
@@ -1031,16 +1097,16 @@ function Spec:BuildDropdown()
     if aceGUI then
         local widget = aceGUI:Create("Window")
         if widget and widget.frame and widget.content then
-            local title = "Set talents"
+            local title = pending.combatProfiles and MultiBot.L("combat.profile.title") or "Set talents"
             if MultiBot and type(MultiBot.L) == "function" then
-                local localized = MultiBot.L("spec.list.title", title)
+                local localized = pending.combatProfiles and title or MultiBot.L("spec.list.title", title)
                 if localized and localized ~= "" and localized ~= "spec.list.title" then
                     title = localized
                 end
             end
 
             widget:SetTitle(title)
-            widget:SetWidth(92)
+            widget:SetWidth(pending.combatProfiles and 242 or 92)
             widget:SetHeight((#pending.specs * 37) + 40)
             widget:EnableResize(false)
             local strataLevel = MultiBot.GetGlobalStrataLevel and MultiBot.GetGlobalStrataLevel()
@@ -1134,11 +1200,42 @@ function Spec:BuildDropdown()
             local icon = entry.icon or defaultIcon
             local tip = entry.tip or specName
 
+            if pending.combatProfiles then
+                if specName == "assassin" then
+                    entry = (((specIconMap[className] or {}).As or {}).pve) or {}
+                    icon = entry.icon or defaultIcon
+                elseif specName == "auto" then
+                    icon = "Interface\\Icons\\INV_Misc_Gear_01"
+                end
+                local label = combatProfileName(specName)
+                tip = label .. "\n" .. MultiBot.L("combat.profile.details")
+                if specName == "auto" then
+                    tip = label .. "\n" .. string.format(MultiBot.L("combat.profile.automatic"),
+                        combatProfileName(pending.effective)) .. "\n" .. MultiBot.L("combat.profile.details")
+                end
+                button:SetSize(210, 32)
+                if not button.profileLabel then
+                    button.profileLabel = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+                    button.profileLabel:SetPoint("LEFT", button, "LEFT", 40, 0)
+                end
+                button.profileLabel:SetText((specName == pending.selected and "|cff00ff00" or "") .. label)
+                button.profileLabel:Show()
+            else
+                button:SetSize(32, 32)
+                if button.profileLabel then button.profileLabel:Hide() end
+            end
+
             button:SetNormalTexture(icon)
             button:SetDisabledTexture(icon)
             button:Show()
 
-            if (not alreadyMarked) and build == currentBuild then
+            if pending.combatProfiles then
+                local texture = button:GetNormalTexture()
+                texture:ClearAllPoints()
+                texture:SetPoint("LEFT", button, "LEFT", 0, 0)
+                texture:SetSize(32, 32)
+                bindCombatProfile(button, specName, tip, pending)
+            elseif (not alreadyMarked) and build == currentBuild then
                 alreadyMarked = true
                 bindSpecSelection(button, specName, specIndex, build, tip, pending.bot, className, currentBuild)
             else
@@ -1149,7 +1246,7 @@ function Spec:BuildDropdown()
         end
     end
 
-    dropdownFrame:SetWidth(40)
+    dropdownFrame:SetWidth(pending.combatProfiles and 218 or 40)
     dropdownFrame:SetHeight(needed * step)
     if self.dropdownWidget and type(self.dropdownWidget.SetHeight) == "function" then
         self.dropdownWidget:SetHeight((needed * step) + 40)

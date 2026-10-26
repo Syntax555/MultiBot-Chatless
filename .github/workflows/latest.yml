@@ -27,6 +27,9 @@ jobs:
       - name: Check Lua syntax and package
         run: python3 .github/scripts/package_latest.py --addon .:MultiBot.toc:MultiBot --luac luac5.1 --output "MultiBot-Chatless-latest.zip"
 
+      - name: Test combat profile requests and selection
+        run: lua5.1 tests/test_combat_profiles.lua .
+
       - name: Publish the Latest release
         env:
           GH_TOKEN: ${{ github.token }}

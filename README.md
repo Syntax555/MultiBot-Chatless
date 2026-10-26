@@ -12,6 +12,9 @@ Changes on `main`:
 - Initializes the options panel through the supported fallback and keeps saved settings.
 - Inspects bot talents through EraTalents on realms with historical Vanilla/TBC trees.
 - Toggles the paladin, priest and warrior strategies the bots actually use.
+- With a matching bridge, the combat profile selector offers automatic detection
+  from talents or a manual class profile. It updates role strategies and suitable
+  owned equipment without spending talent points.
 - Buys from merchants for the selected altbot with that bot's own gold.
 - Loads LibDataBroker before LibDBIcon.
 - Reads the bridge's spell id and skip flag, so the bot spellbook is filled.

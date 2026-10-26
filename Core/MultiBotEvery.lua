@@ -609,6 +609,13 @@ MultiBot.addEvery = function(pFrame, pCombat, pNormal)
 	-- BOUTON SETTALENTS : toggle affichage de la barre des specs
     local btn = pFrame
         .addButton("SetTalents", 334, 0, "inv_sword_22", MultiBot.L("tips.every.settalent"))
+    local enter = btn:GetScript("OnEnter")
+    btn:SetScript("OnEnter", function(self, ...)
+      local comm = MultiBot.Comm
+      self.tip = MultiBot.L(comm and comm.IsCombatProfileCapable and comm.IsCombatProfileCapable()
+        and "tips.every.combatprofile" or "tips.every.settalent")
+      if enter then enter(self, ...) end
+    end)
     -- état initial : toujours désactivé (zen, pas de barre affichée au load)
     btn:setDisable()
 

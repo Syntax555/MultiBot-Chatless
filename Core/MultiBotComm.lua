@@ -64,6 +64,7 @@ local CAPABILITY_STATE_FIELDS = {
   [QUEST_ABANDON_CAPABILITY] = "questAbandonCapable",
   [TALENT_APPLY_CAPABILITY] = "talentApplyCapable",
   [TALENT_SPEC_APPLY_CAPABILITY] = "talentSpecApplyCapable",
+  ["COMBAT_PROFILE_V1"] = "combatProfileCapable",
   [CRAFT_RECIPE_TARGET_CAPABILITY] = "craftRecipeTargetCapable",
   [LOOT_RULE_ITEM_CAPABILITY] = "lootRuleItemCapable",
   [ALT_ROSTER_CAPABILITY] = "altRosterCapable",
@@ -360,6 +361,7 @@ local function ensureBridgeState()
   state.questAbandonCapable = state.questAbandonCapable or false
   state.talentApplyCapable = state.talentApplyCapable or false
   state.talentSpecApplyCapable = state.talentSpecApplyCapable or false
+  state.combatProfileCapable = state.combatProfileCapable or false
   state.craftRecipeTargetCapable = state.craftRecipeTargetCapable or false
   state.lootRuleItemCapable = state.lootRuleItemCapable or false
   state.altRosterCapable = state.altRosterCapable or false
@@ -391,6 +393,8 @@ local function ensureBridgeState()
   state.talentApplyCommands = state.talentApplyCommands or {}
   state.talentSpecApplySeq = state.talentSpecApplySeq or 0
   state.talentSpecApplyCommands = state.talentSpecApplyCommands or {}
+  state.combatProfileSeq = state.combatProfileSeq or 0
+  state.combatProfileCommands = state.combatProfileCommands or {}
   state.strategyMutationSeq = state.strategyMutationSeq or 0
   state.strategyMutationCommands = state.strategyMutationCommands or {}
   state.selfStrategySeq = state.selfStrategySeq or 0
@@ -4658,7 +4662,127 @@ local function handleTalentSpecApplyResponse(payload, state)
   })
   return true
 end
--- MB_TALENT_SPEC_APPLY_V1_END-- MB_QUEST_ABANDON_V1_BEGIN
+-- MB_TALENT_SPEC_APPLY_V1_END
+
+function Comm.IsCombatProfileId(value)
+  return type(value) == "string" and #value <= 24 and string.match(value, "^[a-z][a-z%d]*$") ~= nil
+end
+
+function Comm.FinishCombatProfileRequest(token, result)
+  local state = ensureBridgeState()
+  local pending = state.combatProfileCommands[token]
+  if not pending then return false end
+  state.combatProfileCommands[token] = nil
+  result.botName = pending.botName
+  if type(pending.callback) == "function" then pending.callback(result) end
+  return true
+end
+
+function Comm.IsCombatProfileCapable()
+  local state = ensureBridgeState()
+  return state.connected == true and state.combatProfileCapable == true
+end
+
+function Comm.StartCombatProfileRequest(botName, profile, callback)
+  local state = ensureBridgeState()
+  botName = trim(botName)
+  if not Comm.IsCombatProfileCapable() or botName == "" or #botName > 64
+      or (profile ~= nil and not Comm.IsCombatProfileId(profile)) then
+    state.lastError = "COMBAT_PROFILE_UNAVAILABLE"
+    return false
+  end
+  if countTableEntries(state.combatProfileCommands) >= 8 then
+    state.lastError = "COMBAT_PROFILE_TOO_MANY_REQUESTS"
+    return false
+  end
+  state.combatProfileSeq = state.combatProfileSeq + 1
+  local token = tostring(math.floor(safeNow() * 1000)) .. "-profile-" .. tostring(state.combatProfileSeq)
+  state.combatProfileCommands[token] = {
+    botName = botName, botNameKey = string.lower(botName), profile = profile, callback = callback,
+  }
+  local payload = profile and ("COMBAT_PROFILE~" .. token .. "~" .. urlEncodeField(botName) .. "~" .. profile)
+      or ("COMBAT_PROFILES~" .. urlEncodeField(botName) .. "~" .. token)
+  if not Comm.Send(profile and "RUN" or "GET", payload) then
+    state.combatProfileCommands[token] = nil
+    state.lastError = "COMBAT_PROFILE_SEND_FAILED"
+    return false
+  end
+  safeDelay(5, function()
+    if not state.combatProfileCommands[token] then return end
+    state.lastError = "COMBAT_PROFILE_TIMEOUT"
+    Comm.FinishCombatProfileRequest(token, { status = "error", reason = "TIMEOUT" })
+  end)
+  return token
+end
+
+function Comm.RequestCombatProfiles(botName, callback)
+  return Comm.StartCombatProfileRequest(botName, nil, callback)
+end
+
+function Comm.RunCombatProfile(botName, profile, callback)
+  if not Comm.IsCombatProfileId(profile) then return false end
+  return Comm.StartCombatProfileRequest(botName, profile, callback)
+end
+
+function Comm.ApplyCombatProfilesPayload(payload, state)
+  state = state or ensureBridgeState()
+  local fields = splitFields(payload)
+  local pending = state.combatProfileCommands[fields[1]]
+  if not pending then return true end
+  local botName = urlDecodeFieldStrict(fields[2], 64, false)
+  if #fields ~= 5 or pending.profile or not botName or string.lower(botName) ~= pending.botNameKey
+      or not Comm.IsCombatProfileId(fields[3]) or not Comm.IsCombatProfileId(fields[4]) or #fields[5] > 192 then
+    state.lastError = "COMBAT_PROFILE_BAD_RESPONSE"
+    return true
+  end
+  local profiles, seen = {}, {}
+  for profile in (fields[5] .. ","):gmatch("([^,]*),") do
+    if not Comm.IsCombatProfileId(profile) or seen[profile] or #profiles >= 8 then
+      state.lastError = "COMBAT_PROFILE_BAD_RESPONSE"
+      return true
+    end
+    profiles[#profiles + 1], seen[profile] = profile, true
+  end
+  if not seen.auto or not seen[fields[3]] then
+    state.lastError = "COMBAT_PROFILE_BAD_RESPONSE"
+    return true
+  end
+  state.lastError = nil
+  Comm.FinishCombatProfileRequest(fields[1], {
+    status = "ok", profiles = profiles, selected = fields[3], effective = fields[4],
+  })
+  return true
+end
+
+function Comm.ApplyCombatProfileResultPayload(payload, state)
+  state = state or ensureBridgeState()
+  local fields = splitFields(payload)
+  local pending = state.combatProfileCommands[fields[1]]
+  if not pending then return true end
+  local botName = urlDecodeFieldStrict(fields[2], 64, false)
+  local status, reason = fields[3], fields[4]
+  if #fields ~= 6 or not botName or string.lower(botName) ~= pending.botNameKey
+      or (status ~= "OK" and status ~= "ERR") or not reason:match("^[A-Z][A-Z%d_]*$") or #reason > 64
+      or not Comm.IsCombatProfileId(fields[5]) or (fields[6] ~= "" and not Comm.IsCombatProfileId(fields[6]))
+      or (status == "OK" and (not pending.profile or fields[5] ~= pending.profile or fields[6] == "")) then
+    state.lastError = "COMBAT_PROFILE_BAD_RESPONSE"
+    return true
+  end
+  state.lastError = status == "ERR" and ("COMBAT_PROFILE_" .. reason) or nil
+  Comm.FinishCombatProfileRequest(fields[1], {
+    status = status == "OK" and "ok" or "error", reason = reason,
+    selected = fields[5], effective = fields[6],
+  })
+  return true
+end
+
+function Comm.HandleCombatProfileProtocolError(requestType, token, reason)
+  if requestType ~= "COMBAT_PROFILE" and requestType ~= "COMBAT_PROFILES" then return false end
+  Comm.FinishCombatProfileRequest(token, { status = "error", reason = reason or "PROTOCOL_ERROR" })
+  return true
+end
+
+-- MB_QUEST_ABANDON_V1_BEGIN
 
 local function finishQuestAbandonCommand(token, result)
   local state = ensureBridgeState()
@@ -5120,6 +5244,13 @@ function Comm.MarkDisconnected(reason)
     })
   end
   state.talentSpecApplyCommands = {}
+
+  local pendingCombatProfileTokens = {}
+  for token in pairs(state.combatProfileCommands) do pendingCombatProfileTokens[#pendingCombatProfileTokens + 1] = token end
+  for _, token in ipairs(pendingCombatProfileTokens) do
+    Comm.FinishCombatProfileRequest(token, { status = "error", reason = "DISCONNECTED" })
+  end
+  state.combatProfileCommands = {}
 
   local pendingQuestAbandonTokens = {}
   for token in pairs(state.questAbandonCommands or {}) do
@@ -7778,6 +7909,8 @@ local STRUCTURED_OPCODE_HANDLERS = {
   TALENT_APPLY_RESULT = handleTalentApplyResponse,
   TALENT_SPEC_CURRENT = handleTalentSpecCurrentResponse,
   TALENT_SPEC_APPLY_RESULT = handleTalentSpecApplyResponse,
+  COMBAT_PROFILES = Comm.ApplyCombatProfilesPayload,
+  COMBAT_PROFILE_RESULT = Comm.ApplyCombatProfileResultPayload,
   CRAFT_RECIPE_TARGET_RESULT = handleProfessionRecipeTargetResponse,
 }
 
@@ -9918,7 +10051,9 @@ function Comm.HandleAddonMessage(prefix, message, distribution, sender)
 
       requestType = requestType and string.upper(trim(requestType)) or nil
       if requestType and isValidStateToken(token) and reason then
-        if Comm.HandleSelfBotProtocolError(requestType, token, reason, state) then
+        if Comm.HandleCombatProfileProtocolError(requestType, token, reason) then
+          return true
+        elseif Comm.HandleSelfBotProtocolError(requestType, token, reason, state) then
           return true
         elseif Comm.HandleSelfActionProtocolError(requestType, token, reason, state) then
           return true
