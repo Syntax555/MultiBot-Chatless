@@ -144,7 +144,7 @@ MultiBot.addPriest = function(pFrame, pCombat, pNormal)
 	if(MultiBot.hasStrategy(pCombat, "healer dps")) then pFrame.getButton("DpsAssist").setEnable() end
 	if(MultiBot.hasStrategy(pCombat, "shadow debuff")) then pFrame.getButton("DpsDebuff").setEnable() end
 	if(MultiBot.hasStrategy(pCombat, "dps aoe")) then pFrame.getButton("DpsAoe").setEnable() end
-	if(MultiBot.hasStrategy(pCombat, "shadow")) then pFrame.getButton("Shadow").setEnable() end
+	if(MultiBot.hasStrategy(pCombat, "shadow")) then pFrame.getButton("Dps").setEnable() end
 	if(MultiBot.hasStrategy(pCombat, "tank assist")) then pFrame.getButton("TankAssist").setEnable() end
 	if(MultiBot.hasStrategy(pNormal, "rshadow")) then pFrame.getButton("ShadowRes").setEnable() end
 end

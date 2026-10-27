@@ -97,18 +97,21 @@ local function scenario(locale, mutation)
   StaticPopupDialogs = {}
   MultiBot.IsFavorite = function() return false end
   source("Core/MultiBotEvery.lua", mutation)
-  source("Strategies/MultiBotRogue.lua", mutation)
+  local classes = {"Warrior", "Paladin", "Hunter", "Rogue", "Priest", "DeathKnight", "Shaman", "Mage", "Warlock", "Druid"}
+  for _, class in ipairs(classes) do source("Strategies/MultiBot" .. class .. ".lua", mutation) end
   local function toolbar(name, buttons)
     buttons = buttons or {}
-    local frame = {buttons = {}, frames = {}, getName = function() return name end}
+    local frame = {buttons = {}, frames = {}, scripts = {}, getName = function() return name end}
     function frame:Hide() self.shown = false end
     function frame:Show() self.shown = true end
+    function frame:SetScript(event, callback) self.scripts[event] = callback end
     frame.getButton = function(key) return buttons[key] end
     frame.addButton = function(key)
       local button = {frame = object(), scripts = {}, getName = frame.getName, getButton = frame.getButton,
           getClass = function() return "Warrior" end}
       button.setEnable = function() button.state = true; return button end
       button.setDisable = function() button.state = false; return button end
+      button.setTexture = function(texture) button.texture = texture; return button end
       button.doShow = function() button.shown = true; return button end
       button.doHide = function() button.shown = false; return button end
       function button:GetScript(event) return self.scripts[event] end
@@ -363,7 +366,72 @@ local function scenario(locale, mutation)
     rogueState(rogueAck("ERR", "FAILED"), primary)
     assert(rogueToolbar.getButton("Dps").state, "rejected Rogue removal changed authoritative state")
   end
+  local selected, effective = "auto", "assassin"
+  comm.RequestState = nativeRequestState
+  for index, profile in ipairs({"assassin", "combat", "subtlety"}) do
+    token = request("Owner", "Rogue")
+    listing(token, "Owner", selected, effective, "auto,assassin,combat,subtlety")
+    local selectedIndex = selected == "auto" and 1 or index
+    assert(spec.buttons[selectedIndex].profileLabel.text:find("|cff00ff00", 1, true),
+        "Rogue menu did not retain its confirmed selected profile")
+    spec.buttons[index + 1]:GetScript("OnClick")(spec.buttons[index + 1], "LeftButton")
+    applyToken = assert(sent[#sent].payload:match("^COMBAT_PROFILE~([^~]+)~Owner~" .. profile .. "$"),
+        "Rogue menu did not apply its selected specialization")
+    ack(applyToken, "Owner", "OK", "OK", profile, profile)
+    local refreshToken = assert(sent[#sent].payload:match("^SELF_STRATEGY_STATE~(.+)$"))
+    local primary = profile == "combat" and "combat" or "assassin"
+    rogueState(refreshToken, primary)
+    assert(MultiBot.hasStrategy(MultiBot.bridge.states.owner.combat, primary),
+        "Rogue profile acknowledgement lost its native rotation state")
+    assert(rogueToolbar.getButton("Dps").state, "Rogue profiles must share the active DPS control")
+    selected, effective = profile, profile
+  end
+  token = request("Owner", "Rogue")
+  listing(token, "Owner", selected, effective, "auto,assassin,combat,subtlety")
+  assert(spec.buttons[4].profileLabel.text:find("|cff00ff00", 1, true), "Subtlety selection was replaced by its shared rotation name")
+  spec:HideDropdown()
+  comm.RequestState = captureRequestState
   MultiBot.ApplyBridgeBotState = nil
+
+  local readback = {
+    {"Warrior", "auto,arms,fury,prot", {{"arms", "dps assist", "DpsAssist"}, {"fury", "dps assist", "DpsAssist"}, {"prot", "prot", "Tank"}}},
+    {"Paladin", "auto,holy,prot,ret", {{"holy", "holy", "Heal"}, {"prot", "prot", "Tank"}, {"ret", "ret", "Dps"}}},
+    {"Hunter", "auto,bm,mm,surv", {{"bm", "bm", "BeastMastery"}, {"mm", "mm", "Marksmanship"}, {"surv", "surv", "Survival"}}},
+    {"Rogue", "auto,assassin,combat,subtlety", {{"assassin", "assassin", "Dps"}, {"combat", "combat", "Dps"}, {"subtlety", "assassin", "Dps"}}},
+    {"Priest", "auto,disc,holy,shadow", {{"disc", "disc", "Heal"}, {"holy", "holy heal", "HolyHeal"}, {"shadow", "shadow", "Dps"}}},
+    {"DeathKnight", "auto,blood,frost,unholy", {{"blood", "blood", "Presence"}, {"frost", "frost", "Presence"}, {"unholy", "unholy", "Presence"}}},
+    {"Shaman", "auto,ele,enh,resto", {{"ele", "ele", "Elemental"}, {"enh", "enh", "Enhancement"}, {"resto", "resto", "Restoration"}}},
+    {"Mage", "auto,arcane,fire,frost", {{"arcane", "arcane", "Arcane"}, {"fire", "fire", "Fire"}, {"frost", "frost", "Frost"}}},
+    {"Warlock", "auto,affli,demo,destro", {{"affli", "affli, dps assist", "DpsAssist"}, {"demo", "demo, meta melee", "MetaMelee"}, {"destro", "destro, dps assist", "DpsAssist"}}},
+    {"Druid", "auto,balance,cat,bear,resto", {{"balance", "balance", "Caster"}, {"cat", "cat", "Dps"}, {"bear", "bear", "Tank"}, {"resto", "resto", "Heal"}}},
+  }
+  for _, class in ipairs(readback) do
+    for _, choice in ipairs(class[3]) do
+      token = request("Owner", class[1])
+      listing(token, "Owner", choice[1], choice[1], class[2])
+      local selectedRows = 0
+      for _, button in ipairs(spec.buttons) do
+        if button.profileLabel.text:find("|cff00ff00", 1, true) then selectedRows = selectedRows + 1 end
+      end
+      assert(selectedRows == 1, class[1] .. ": selected profile was not marked exactly once")
+      spec:HideDropdown()
+      for _, target in ipairs({"Owner", "Altbot"}) do
+        local bar = toolbar(target)
+        MultiBot["add" .. class[1]](bar, choice[2], "")
+        assert(bar.getButton(choice[3]).state, class[1] .. ": native profile state did not select " .. choice[3])
+        if class[1] == "DeathKnight" then
+          assert(bar.getButton("Presence").texture == "spell_deathknight_" .. choice[1] .. "presence",
+              "Death Knight profile did not update its presence icon")
+        end
+      end
+    end
+  end
+  local priestBar = toolbar("Owner")
+  MultiBot.addPriest(priestBar, "shadow", "")
+  local priestDps = priestBar.getButton("Dps")
+  priestDps.doLeft(priestDps)
+  assert(sent[#sent].payload:match("~C~%-shadow$"), "selected Priest DPS did not send disable")
+  rogueAck()
   local inactiveToken = assert(comm.RequestSelfBotState())
   deliver("SELF_BOT_STATE", inactiveToken .. "~OK~0~OK")
   local beforeInactive = #sent
@@ -420,6 +488,8 @@ local mutations = {
   { "Core/MultiBotEvery.lua", 'if spec.activeWrapper == self then self:setEnable() end', 'self:setEnable()' },
   { "Core/MultiBotComm.lua", '    return Comm.RequestSelfStrategyState()\n', '    return false\n' },
   { "Strategies/MultiBotRogue.lua", 'hasStrategy(pCombat, "dps", "combat", "assassin")', 'hasStrategy(pCombat, "dps")' },
+  { "Strategies/MultiBotPriest.lua", 'hasStrategy(pCombat, "shadow")) then pFrame.getButton("Dps").setEnable()', 'hasStrategy(pCombat, "shadow")) then pFrame.getButton("Shadow").setEnable()' },
+  { "UI/MultiBotSpecUI.lua", '(specName == pending.selected and "|cff00ff00" or "")', '""' },
 }
 for _, mutation in ipairs(mutations) do
   local ok, errorText = pcall(scenario, "enUS", mutation)
