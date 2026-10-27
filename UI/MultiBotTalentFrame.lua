@@ -2,6 +2,69 @@
 
 if not MultiBot then return end
 
+local function setTalentButtonEnabled(botName, isEnabled)
+    if type(botName) ~= "string" or botName == "" then
+        return
+    end
+
+    local unitsRoot = MultiBot
+        and MultiBot.frames
+        and MultiBot.frames["MultiBar"]
+        and MultiBot.frames["MultiBar"].frames
+        and MultiBot.frames["MultiBar"].frames["Units"]
+    local unitFrame = unitsRoot and unitsRoot.frames and unitsRoot.frames[botName]
+    if not unitFrame or not unitFrame.getButton then
+        return
+    end
+
+    local button = unitFrame.getButton("Talent")
+    if not button then
+        return
+    end
+
+    if isEnabled and button.setEnable then
+        button.setEnable()
+        return
+    end
+
+    if button.setDisable then
+        button.setDisable()
+    end
+end
+
+local eraTalentBot, watchedEra, watchedDragon, watchedDragonWindow
+local function syncEraTalentButtons()
+    local era = _G.EraTalents
+    local inspectTalents = _G.InspectTalentFrame
+    local unit = InspectFrame and InspectFrame:IsShown() and InspectFrame.unit
+    local shown = unit and ((inspectTalents and inspectTalents:IsShown())
+        or (era and era.DragonInspectShown and era.DragonInspectShown(unit)))
+    local name = shown and UnitName(unit) or nil
+    if eraTalentBot and eraTalentBot ~= name then setTalentButtonEnabled(eraTalentBot, false) end
+    eraTalentBot = name
+    if name then setTalentButtonEnabled(name, true) end
+end
+
+local function watchEraTalentButtons(era)
+    local hooksecurefunc = _G.hooksecurefunc
+    if type(hooksecurefunc) ~= "function" then return end
+    if watchedEra ~= era and type(era.RefreshInspect) == "function" then
+        hooksecurefunc(era, "RefreshInspect", syncEraTalentButtons)
+        watchedEra = era
+    end
+    local module = _G.DragonUI and _G.DragonUI.TalentModule
+    local ns = module and module.ns
+    if ns and watchedDragon ~= ns then
+        if type(ns.ShowInspect) == "function" then hooksecurefunc(ns, "ShowInspect", syncEraTalentButtons) end
+        if type(ns.LeaveInspect) == "function" then hooksecurefunc(ns, "LeaveInspect", syncEraTalentButtons) end
+        watchedDragon = ns
+    end
+    if ns and ns.win and watchedDragonWindow ~= ns.win then
+        ns.win:HookScript("OnHide", syncEraTalentButtons)
+        watchedDragonWindow = ns.win
+    end
+end
+
 -- Historical builds are inspected through EraTalents' server-authoritative ISYNC
 -- view. MultiBot's static WotLK talent data cannot describe Vanilla/TBC ranks.
 function MultiBot.OpenEraTalentInspect(botName, toggle)
@@ -25,9 +88,11 @@ function MultiBot.OpenEraTalentInspect(botName, toggle)
 
     MultiBot.auto.talent = false
     if MultiBot.talent then
-        MultiBot.talent.name = botName
         MultiBot.talent:Hide()
+        MultiBot.talent.name = botName
     end
+    watchEraTalentButtons(era)
+    syncEraTalentButtons()
     return true
 end
 
@@ -140,36 +205,6 @@ local function setTalentFrameCloseToHide(window)
         window:SetCallback("OnClose", function(widget)
             widget:Hide()
         end)
-    end
-end
-
-local function setTalentButtonEnabled(botName, isEnabled)
-    if type(botName) ~= "string" or botName == "" then
-        return
-    end
-
-    local unitsRoot = MultiBot
-        and MultiBot.frames
-        and MultiBot.frames["MultiBar"]
-        and MultiBot.frames["MultiBar"].frames
-        and MultiBot.frames["MultiBar"].frames["Units"]
-    local unitFrame = unitsRoot and unitsRoot.frames and unitsRoot.frames[botName]
-    if not unitFrame or not unitFrame.getButton then
-        return
-    end
-
-    local button = unitFrame.getButton("Talent")
-    if not button then
-        return
-    end
-
-    if isEnabled and button.setEnable then
-        button.setEnable()
-        return
-    end
-
-    if button.setDisable then
-        button.setDisable()
     end
 end
 

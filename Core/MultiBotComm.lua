@@ -1439,6 +1439,9 @@ function Comm.RequestState(name)
   if name == "" then
     return false
   end
+  if name == getPlayerName() then
+    return Comm.RequestSelfStrategyState()
+  end
 
   if not state.capabilitiesResolved then
     local queued = queuePendingStateRefresh(state, name, false)

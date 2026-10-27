@@ -93,6 +93,41 @@ local function scenario(locale, mutation)
   source("Locales/MultiBotAceLocale-deDE.lua", mutation)
   source("Core/MultiBotComm.lua", mutation)
   source("UI/MultiBotSpecUI.lua", mutation)
+  StaticPopupDialogs = {}
+  MultiBot.hasStrategy = function(strategies, name) return strategies:find(name, 1, true) ~= nil end
+  MultiBot.IsFavorite = function() return false end
+  source("Core/MultiBotEvery.lua", mutation)
+  local function toolbar(name)
+    local frame = {buttons = {}, frames = {}, getName = function() return name end}
+    function frame:Hide() self.shown = false end
+    function frame:Show() self.shown = true end
+    frame.getButton = function(key) return frame.buttons[key] end
+    frame.addButton = function(key)
+      local button = {frame = object(), scripts = {}, getName = frame.getName, getClass = function() return "Warrior" end}
+      button.setEnable = function() button.state = true; return button end
+      button.setDisable = function() button.state = false; return button end
+      button.doShow = function() button.shown = true; return button end
+      button.doHide = function() button.shown = false; return button end
+      function button:GetScript(event) return self.scripts[event] end
+      function button:SetScript(event, callback) self.scripts[event] = callback end
+      function button:Show() self.shown = true end
+      function button:Hide() self.shown = false end
+      frame.buttons[key] = button
+      return button
+    end
+    frame.addFrame = function(key)
+      local child = toolbar(name)
+      frame.frames[key] = child
+      return child
+    end
+    return frame
+  end
+  local selfToolbar, botToolbar = toolbar("Owner"), toolbar("Altbot")
+  MultiBot.addEvery(selfToolbar, "focus", "food loot")
+  MultiBot.addEvery(botToolbar, "", "")
+  local selfProfile = assert(selfToolbar.buttons.SetTalents, "SelfBot toolbar has no combat-profile selector")
+  local botProfile = assert(botToolbar.buttons.SetTalents)
+  assert(not selfToolbar.buttons.Talent and not selfToolbar.buttons.Inventory, "SelfBot gained bot-only tools")
   local comm, spec = MultiBot.Comm, MultiBot.spec
   comm.Send = function(opcode, payload)
     assert(not payload:find("TALENT_SPEC_APPLY", 1, true), "profile mode wrote talent templates")
@@ -100,15 +135,22 @@ local function scenario(locale, mutation)
     return true
   end
   local refreshed
+  local nativeRequestState = comm.RequestState
   comm.RequestState = function(bot) refreshed = bot end
   local function deliver(opcode, payload, sender)
     comm.HandleAddonMessage("MBOT", opcode .. "~" .. payload, "WHISPER", sender or "Owner")
   end
-  local function connect()
+  local function connect(selfBot)
     MultiBot.bridge.connected = true
     deliver("CAPS_BEGIN", "")
     deliver("CAPS", "COMBAT_PROFILE_V1")
+    if selfBot then deliver("CAPS", "SELF_BOT_V1,SELF_STRATEGY_V1,STATE_FRAMING_V1") end
     deliver("CAPS_END", "")
+    if selfBot then
+      local token = assert(comm.RequestSelfBotState())
+      deliver("SELF_BOT_STATE", token .. "~OK~1~OK")
+      assert(MultiBot.bridge.selfBotLastActive, "SelfBot state was not authoritative")
+    end
   end
   local function expire()
     now = now + 6
@@ -251,7 +293,50 @@ local function scenario(locale, mutation)
       "disconnect left profile requests pending")
   assert(not comm.IsCombatProfileCapable())
 
-  connect()
+  connect(true)
+  selfProfile.doLeft(selfProfile)
+  local selfToken = assert(sent[#sent].payload:match("^COMBAT_PROFILES~Owner~(.+)$"), "SelfBot selector targeted an altbot")
+  listing(selfToken, "Owner")
+  assert(selfProfile.state and spec.dropdown:IsShown(), "SelfBot profile button did not follow its own menu")
+  spec.buttons[3]:GetScript("OnClick")(spec.buttons[3], "LeftButton")
+  local ownApply = assert(sent[#sent].payload:match("^COMBAT_PROFILE~([^~]+)~Owner~fury$"), "SelfBot profile used the wrong target")
+  local captureRequestState = comm.RequestState
+  comm.RequestState = nativeRequestState
+  ack(ownApply, "Owner", "OK", "OK", "fury", "fury")
+  assert(not selfProfile.state and not spec.busy, "SelfBot profile acknowledgement left stale UI")
+  assert(sent[#sent].payload:match("^SELF_STRATEGY_STATE~"), "SelfBot profile refresh used ordinary bot state")
+  comm.RequestState = captureRequestState
+  assert(nativeRequestState("Altbot") and sent[#sent].payload:match("^STATE~Altbot~"),
+      "ordinary bot strategy refresh was redirected to SelfBot")
+  local inactiveToken = assert(comm.RequestSelfBotState())
+  deliver("SELF_BOT_STATE", inactiveToken .. "~OK~0~OK")
+  local beforeInactive = #sent
+  assert(not nativeRequestState("Owner") and #sent == beforeInactive,
+      "inactive human character fell through to ordinary bot state")
+
+  botProfile.doLeft(botProfile)
+  listing(assert(sent[#sent].payload:match("~([^~]+)$")))
+  assert(botProfile.state and spec.dropdown:IsShown())
+  selfProfile.doLeft(selfProfile)
+  assert(not botProfile.state and selfProfile.state and spec.pending.bot == "Owner", "switching profile targets did not move the pressed button")
+  listing(assert(sent[#sent].payload:match("~([^~]+)$")), "Owner")
+  selfProfile.doLeft(selfProfile)
+  assert(not selfProfile.state and not spec.dropdown, "SelfBot profile button did not close its own menu")
+
+  local beforeUnsupported = #sent
+  MultiBot.bridge.combatProfileCapable = false
+  MultiBot.allowLegacyChatFallback = true
+  selfProfile.doLeft(selfProfile)
+  assert(#sent == beforeUnsupported and not selfProfile.state and not spec.pending,
+      "unsupported SelfBot profile fell through to legacy talent commands")
+  MultiBot.allowLegacyChatFallback = nil
+  MultiBot.bridge.combatProfileCapable = true
+  local realSend = comm.Send
+  comm.Send = function() return false end
+  selfProfile.doLeft(selfProfile)
+  assert(not selfProfile.state and not spec.activeWrapper, "failed SelfBot profile request left its button pressed")
+  comm.Send = realSend
+
   local before = #sent
   for _ = 1, 8 do assert(comm.RequestCombatProfiles("Altbot")) end
   assert(not comm.RequestCombatProfiles("Altbot") and #sent == before + 8, "request bound was removed")
@@ -273,6 +358,11 @@ local mutations = {
       '#fields ~= 6 or not botName' },
   { "Core/MultiBotComm.lua", 'if Comm.HandleCombatProfileProtocolError(requestType, token, reason) then', 'if false then' },
   { "UI/MultiBotSpecUI.lua", '            if self.pending ~= pending then return end', '' },
+  { "Core/MultiBotEvery.lua", '\t\taddSpecButton(pFrame, everyActionStartX + 120, true)\n', '' },
+  { "Core/MultiBotEvery.lua", 'if selfOnly and not (comm and comm.IsCombatProfileCapable and comm.IsCombatProfileCapable()) then', 'if false then' },
+  { "Core/MultiBotEvery.lua", 'and spec.activeWrapper == self then', 'then' },
+  { "Core/MultiBotEvery.lua", 'if spec.activeWrapper == self then self:setEnable() end', 'self:setEnable()' },
+  { "Core/MultiBotComm.lua", '    return Comm.RequestSelfStrategyState()\n', '    return false\n' },
 }
 for _, mutation in ipairs(mutations) do
   local ok, errorText = pcall(scenario, "enUS", mutation)

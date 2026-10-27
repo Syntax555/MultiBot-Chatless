@@ -109,6 +109,31 @@ local function addBotCombatButton(parent, name, x, y, icon, tip, enableCommand, 
   return button
 end
 
+local function addSpecButton(frame, x, selfOnly)
+    local button = frame.addButton("SetTalents", x, 0, "inv_sword_22", MultiBot.L("tips.every.settalent"))
+    local enter = button:GetScript("OnEnter")
+    button:SetScript("OnEnter", function(self, ...)
+        local comm = MultiBot.Comm
+        self.tip = MultiBot.L(comm and comm.IsCombatProfileCapable and comm.IsCombatProfileCapable()
+            and "tips.every.combatprofile" or "tips.every.settalent")
+        if enter then enter(self, ...) end
+    end)
+    button:setDisable()
+    button.doLeft = function(self)
+        local spec, comm = MultiBot.spec, MultiBot.Comm
+        if selfOnly and not (comm and comm.IsCombatProfileCapable and comm.IsCombatProfileCapable()) then
+            showEveryMessage(MultiBot.L("combat.profile.reason.BRIDGE_UNAVAILABLE"))
+            return
+        end
+        if spec.dropdown and spec.dropdown:IsShown() and spec.activeWrapper == self then
+            spec:HideDropdown()
+        else
+            spec:RequestList(self:getName(), self)
+            if spec.activeWrapper == self then self:setEnable() end
+        end
+    end
+end
+
 -- D3.1 dynamic group action state.
 local function IsEveryGroupActive(name)
 	if type(name) ~= "string" or name == "" then
@@ -467,6 +492,7 @@ MultiBot.addEvery = function(pFrame, pCombat, pNormal)
 		addSelfWaitButton("CombatWait10", 0, 28, MultiBot.L("tips.every.combatwait10"), 10)
 
 		if(MultiBot.hasStrategy(pCombat, "focus")) then focusButton.setEnable() end
+		addSpecButton(pFrame, everyActionStartX + 120, true)
 		return
 	end
 
@@ -606,30 +632,8 @@ MultiBot.addEvery = function(pFrame, pCombat, pNormal)
 		end
 	end
 
-	-- BOUTON SETTALENTS : toggle affichage de la barre des specs
-    local btn = pFrame
-        .addButton("SetTalents", 334, 0, "inv_sword_22", MultiBot.L("tips.every.settalent"))
-    local enter = btn:GetScript("OnEnter")
-    btn:SetScript("OnEnter", function(self, ...)
-      local comm = MultiBot.Comm
-      self.tip = MultiBot.L(comm and comm.IsCombatProfileCapable and comm.IsCombatProfileCapable()
-        and "tips.every.combatprofile" or "tips.every.settalent")
-      if enter then enter(self, ...) end
-    end)
-    -- état initial : toujours désactivé (zen, pas de barre affichée au load)
-    btn:setDisable()
-
-    btn.doLeft = function(self)
-      -- si le dropdown existe et est visible → on le ferme
-      if MultiBot.spec.dropdown and MultiBot.spec.dropdown:IsShown() then
-        MultiBot.spec:HideDropdown()
-        self:setDisable()
-      else
-        -- sinon on envoie la requête au bot, et on active le bouton
-        MultiBot.spec:RequestList(self:getName(), self)
-        self:setEnable()
-      end
-    end
+	-- The same selector also serves the compact SelfBot toolbar.
+	addSpecButton(pFrame, 334, false)
 
 -- STRATEGIES --
 	if not isSelfBot then
