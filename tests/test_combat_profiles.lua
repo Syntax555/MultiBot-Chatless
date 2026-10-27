@@ -92,18 +92,21 @@ local function scenario(locale, mutation)
   source("Locales/MultiBotAceLocale-enUS.lua", mutation)
   source("Locales/MultiBotAceLocale-deDE.lua", mutation)
   source("Core/MultiBotComm.lua", mutation)
+  source("Core/MultiBotEngine.lua", mutation)
   source("UI/MultiBotSpecUI.lua", mutation)
   StaticPopupDialogs = {}
-  MultiBot.hasStrategy = function(strategies, name) return strategies:find(name, 1, true) ~= nil end
   MultiBot.IsFavorite = function() return false end
   source("Core/MultiBotEvery.lua", mutation)
-  local function toolbar(name)
+  source("Strategies/MultiBotRogue.lua", mutation)
+  local function toolbar(name, buttons)
+    buttons = buttons or {}
     local frame = {buttons = {}, frames = {}, getName = function() return name end}
     function frame:Hide() self.shown = false end
     function frame:Show() self.shown = true end
-    frame.getButton = function(key) return frame.buttons[key] end
+    frame.getButton = function(key) return buttons[key] end
     frame.addButton = function(key)
-      local button = {frame = object(), scripts = {}, getName = frame.getName, getClass = function() return "Warrior" end}
+      local button = {frame = object(), scripts = {}, getName = frame.getName, getButton = frame.getButton,
+          getClass = function() return "Warrior" end}
       button.setEnable = function() button.state = true; return button end
       button.setDisable = function() button.state = false; return button end
       button.doShow = function() button.shown = true; return button end
@@ -113,10 +116,11 @@ local function scenario(locale, mutation)
       function button:Show() self.shown = true end
       function button:Hide() self.shown = false end
       frame.buttons[key] = button
+      buttons[key] = button
       return button
     end
     frame.addFrame = function(key)
-      local child = toolbar(name)
+      local child = toolbar(name, buttons)
       frame.frames[key] = child
       return child
     end
@@ -150,6 +154,10 @@ local function scenario(locale, mutation)
       local token = assert(comm.RequestSelfBotState())
       deliver("SELF_BOT_STATE", token .. "~OK~1~OK")
       assert(MultiBot.bridge.selfBotLastActive, "SelfBot state was not authoritative")
+      for commandToken, command in pairs(MultiBot.bridge.selfStrategyCommands) do
+        assert(command.stateScope == "N" and command.changes == "-mount")
+        deliver("SELF_STRATEGY_ACK", commandToken .. "~N~OK~APPLIED")
+      end
     end
   end
   local function expire()
@@ -308,6 +316,54 @@ local function scenario(locale, mutation)
   comm.RequestState = captureRequestState
   assert(nativeRequestState("Altbot") and sent[#sent].payload:match("^STATE~Altbot~"),
       "ordinary bot strategy refresh was redirected to SelfBot")
+
+  local rogueToolbar = toolbar("Owner")
+  MultiBot.ApplyBridgeBotState = function(name, combat, normal)
+    assert(name == "Owner", "SelfBot strategy state changed another character")
+    MultiBot.addRogue(rogueToolbar, combat, normal)
+  end
+  local function rogueState(token, primary)
+    local combat = {"dps assist", "aoe", "boost"}
+    if primary then combat[#combat + 1] = primary end
+    deliver("STATE_BEGIN", token .. "~Owner~" .. #combat .. "~1")
+    for index, strategy in ipairs(combat) do
+      deliver("STATE_ITEM", token .. "~Owner~C~" .. index .. "~" .. strategy:gsub(" ", "%%20"))
+    end
+    deliver("STATE_ITEM", token .. "~Owner~N~1~stealth")
+    deliver("STATE_END", token .. "~Owner~" .. #combat .. "~1")
+  end
+  local function rogueAck(status, reason)
+    local packet = sent[#sent].payload
+    local commandToken = assert(packet:match("^SELF_STRATEGY~([^~]+)~C~"), "Rogue SelfBot used bot strategy routing")
+    deliver("SELF_STRATEGY_ACK", commandToken .. "~C~" .. (status or "OK") .. "~" .. (reason or "APPLIED"))
+    return assert(sent[#sent].payload:match("^SELF_STRATEGY_STATE~(.+)$"), "Rogue acknowledgement did not refresh authoritative state")
+  end
+  for _, primary in ipairs({"combat", "assassin", "dps"}) do
+    rogueState(assert(comm.RequestSelfStrategyState()), primary)
+    local dps = rogueToolbar.getButton("Dps")
+    assert(dps.state, "Rogue native rotation did not select DPS: " .. primary)
+    assert(rogueToolbar.getButton("DpsAssist").state and rogueToolbar.getButton("Stealth").state,
+        "Rogue authoritative assist or stealth strategy was lost")
+    assert(not rogueToolbar.getButton("DpsAoe").state, "Rogue aoe was confused with dps aoe")
+    dps.doLeft(dps)
+    assert(sent[#sent].payload:match("~C~%-dps$"), "selected Rogue DPS did not send disable")
+    assert(dps.state, "Rogue SelfBot changed state before its acknowledgement")
+    local refreshToken = rogueAck()
+    assert(dps.state, "Rogue SelfBot changed state before its authoritative refresh")
+    rogueState(refreshToken)
+    dps = rogueToolbar.getButton("Dps")
+    assert(not dps.state, "Rogue DPS stayed selected after native removal")
+    dps.doLeft(dps)
+    assert(sent[#sent].payload:match("~C~%+dps$"), "disabled Rogue DPS did not send enable")
+    assert(not dps.state, "Rogue SelfBot optimistically enabled DPS")
+    rogueState(rogueAck(), primary)
+    assert(rogueToolbar.getButton("Dps").state, "Rogue DPS did not select after native re-enable")
+    dps = rogueToolbar.getButton("Dps")
+    dps.doLeft(dps)
+    rogueState(rogueAck("ERR", "FAILED"), primary)
+    assert(rogueToolbar.getButton("Dps").state, "rejected Rogue removal changed authoritative state")
+  end
+  MultiBot.ApplyBridgeBotState = nil
   local inactiveToken = assert(comm.RequestSelfBotState())
   deliver("SELF_BOT_STATE", inactiveToken .. "~OK~0~OK")
   local beforeInactive = #sent
@@ -363,6 +419,7 @@ local mutations = {
   { "Core/MultiBotEvery.lua", 'and spec.activeWrapper == self then', 'then' },
   { "Core/MultiBotEvery.lua", 'if spec.activeWrapper == self then self:setEnable() end', 'self:setEnable()' },
   { "Core/MultiBotComm.lua", '    return Comm.RequestSelfStrategyState()\n', '    return false\n' },
+  { "Strategies/MultiBotRogue.lua", 'hasStrategy(pCombat, "dps", "combat", "assassin")', 'hasStrategy(pCombat, "dps")' },
 }
 for _, mutation in ipairs(mutations) do
   local ok, errorText = pcall(scenario, "enUS", mutation)
