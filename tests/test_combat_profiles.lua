@@ -325,15 +325,15 @@ local function scenario(locale, mutation)
     assert(name == "Owner", "SelfBot strategy state changed another character")
     MultiBot.addRogue(rogueToolbar, combat, normal)
   end
-  local function rogueState(token, primary)
+  local function rogueState(stateToken, primary)
     local combat = {"dps assist", "aoe", "boost"}
     if primary then combat[#combat + 1] = primary end
-    deliver("STATE_BEGIN", token .. "~Owner~" .. #combat .. "~1")
+    deliver("STATE_BEGIN", stateToken .. "~Owner~" .. #combat .. "~1")
     for index, strategy in ipairs(combat) do
-      deliver("STATE_ITEM", token .. "~Owner~C~" .. index .. "~" .. strategy:gsub(" ", "%%20"))
+      deliver("STATE_ITEM", stateToken .. "~Owner~C~" .. index .. "~" .. strategy:gsub(" ", "%%20"))
     end
-    deliver("STATE_ITEM", token .. "~Owner~N~1~stealth")
-    deliver("STATE_END", token .. "~Owner~" .. #combat .. "~1")
+    deliver("STATE_ITEM", stateToken .. "~Owner~N~1~stealth")
+    deliver("STATE_END", stateToken .. "~Owner~" .. #combat .. "~1")
   end
   local function rogueAck(status, reason)
     local packet = sent[#sent].payload
