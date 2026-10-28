@@ -36,7 +36,7 @@ globals = {
 	"QuestFrameRewardPanel", "QuestFrame", "GetFactionInfoByID", "PanelTemplates_SetTab", "PanelTemplates_SetNumTabs", "ABANDON_QUEST", "GetCoinTextureString", "InviteUnit", "TradeFrame",
 	"BuyMerchantItem", "PickupMerchantItem", "GetMerchantItemLink", "GetMerchantItemInfo", "MERCHANT_HIGH_PRICE_COST",
 	"MerchantFrame_ConfirmExtendedItemCost", "MerchantFrame_ConfirmHighCostItem", "StaticPopup_Hide", "StackSplitFrame",
-	"geterrorhandler"
+	"geterrorhandler", "CanInspect"
 	
 }
 

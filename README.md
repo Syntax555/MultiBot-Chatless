@@ -82,7 +82,7 @@ and follow the server's
 [contribution guide](https://github.com/Syntax555/mod-playerbots-portable/blob/main/CONTRIBUTING.md)
 for integration changes. General upstream controls and technical documentation
 are described in the
-[imported upstream README](https://github.com/Wishmaster117/MultiBot-Chatless/blob/80148dff3f3a25a56d38dba0ecbd4f165b8c1d3f/README.md);
+[imported upstream README](https://github.com/Wishmaster117/MultiBot-Chatless/blob/020210ba849c972903128c8db37e150d076cf2a0/README.md);
 its downloads and server setup refer to the original project.
 
 ## Credits and license
@@ -91,7 +91,7 @@ The upstream README credits **Macx-Lio** for the original MultiBot module;
 the addon TOC names **Nico Löbbert** as author. **Wishmaster117 (TheWarlock)**
 maintains MultiBot Chatless, building on AzerothCore and Playerbots. Attribution for the selectively adapted **Jellypowered** bridge
 work is preserved in the
-[imported upstream roadmap](https://github.com/Wishmaster117/MultiBot-Chatless/blob/80148dff3f3a25a56d38dba0ecbd4f165b8c1d3f/docs/ROADMAP.md).
+[imported upstream roadmap](https://github.com/Wishmaster117/MultiBot-Chatless/blob/020210ba849c972903128c8db37e150d076cf2a0/docs/ROADMAP.md).
 
 The repository includes the
 [GNU General Public License version 3 text](https://github.com/Syntax555/MultiBot-Chatless/blob/main/LICENSE).
