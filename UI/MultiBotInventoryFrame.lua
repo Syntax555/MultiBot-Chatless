@@ -239,10 +239,6 @@ local function suppressNextTradeInventoryDump(botName)
         return
     end
 
-    if not (MultiBot.bridge and MultiBot.bridge.connected) then
-        return
-    end
-
     if not ensureTradeInventoryDumpFilter() then
         return
     end
@@ -1302,15 +1298,6 @@ local function getInventorySourceButton(botName)
     return unitFrame and unitFrame.getButton and unitFrame.getButton("Inventory") or nil
 end
 
-local function getInventoryWaitButton(botName)
-    if not botName or botName == "" then
-        return nil
-    end
-
-    local units = getInventoryUnitsFrame()
-    return units and units.buttons and units.buttons[botName] or nil
-end
-
 local function disableOtherInventoryButtons(activeBotName)
     local units = getInventoryUnitsFrame()
     if not units or not MultiBot.index or not MultiBot.index.actives then
@@ -1423,7 +1410,7 @@ local function openInspectForInventoryBot(botName)
     end
 
     local unit = MultiBot.toUnit(botName)
-    if not unit or not UnitExists(unit) then
+    if not unit or not UnitExists(unit) or not CanInspect or not CanInspect(unit, true) then
         return false
     end
 
@@ -1436,10 +1423,6 @@ local function openInspectForInventoryBot(botName)
     end
 
     InspectUnit(unit)
-
-    if InspectFrame and ShowUIPanel and not InspectFrame:IsShown() then
-        ShowUIPanel(InspectFrame)
-    end
 
     return true
 end
@@ -1479,15 +1462,7 @@ local function prepareInventoryForBot(botName)
         sourceButton.setEnable()
     end
 
-    local requested = requestInventoryForBot(botName)
-    if not requested then
-        local waitButton = getInventoryWaitButton(botName)
-        if waitButton and (waitButton.waitFor == "INVENTORY" or waitButton.waitFor == "ITEM" or waitButton.waitFor == "LOOT") then
-            waitButton.waitFor = ""
-        end
-    end
-
-    return requested
+    return requestInventoryForBot(botName)
 end
 
 local function setInventoryActionState(buttonKey, options)
@@ -1574,22 +1549,6 @@ local function runInventoryInstantAction(botName, command, options)
         return cmd == "s *" or cmd == "s vendor"
     end
 
-    local function shouldSellButtonForBulk(button, cmd)
-        local item = button and button.item
-        if not item then
-            return false
-        end
-
-        if MultiBot.InventoryIsProtectedSellItem and MultiBot.InventoryIsProtectedSellItem(item) then
-            return false
-        end
-
-        if cmd == "s *" then
-            return tonumber(item.rare or -1) == 0
-        end
-
-        return true
-    end
 
     local function runFilteredBulkSell(cmd)
         local bridgeAction = nil
@@ -1615,48 +1574,7 @@ local function runInventoryInstantAction(botName, command, options)
             return false
         end
 
-        if MultiBot.allowLegacyChatFallback ~= true then
-            return false
-        end
-
-        local inventory = MultiBot.inventory
-        local itemsFrame = inventory and inventory.frames and inventory.frames.Items
-        local itemButtons = itemsFrame and itemsFrame.buttons
-        if type(itemButtons) ~= "table" then
-            return false
-        end
-
-        local sellCount = 0
-        local protectedFound = false
-        for _, itemButton in pairs(itemButtons) do
-            if itemButton and itemButton.item then
-                if MultiBot.InventoryIsProtectedSellItem and MultiBot.InventoryIsProtectedSellItem(itemButton.item) then
-                    protectedFound = true
-                elseif shouldSellButtonForBulk(itemButton, cmd) then
-                    SendChatMessage("s " .. itemButton.tip, "WHISPER", nil, botName)
-                    if itemButton.Hide then
-                        itemButton:Hide()
-                    end
-                    sellCount = sellCount + 1
-                end
-            end
-        end
-
-        if protectedFound then
-            SendChatMessage(MultiBot.L("info.questitemsellalert", "I cannot sell quest items."), "SAY")
-        end
-
-        if sellCount < 1 and not protectedFound then
-            return false
-        end
-
-        if options.refreshDelay ~= nil and MultiBot.RefreshInventory then
-            MultiBot.RefreshInventory(options.refreshDelay)
-        elseif options.refresh and MultiBot.RefreshInventory then
-            MultiBot.RefreshInventory()
-        end
-
-        return true
+        return false
     end
 
     if isBulkSellCommand(command) then
@@ -1685,23 +1603,12 @@ local function runInventoryInstantAction(botName, command, options)
             return false
         end
 
-        if MultiBot.allowLegacyChatFallback ~= true then
-            if bridge then
-                bridge.lastError = "INVENTORY_OPEN_CAPABILITY_UNAVAILABLE"
-            end
-            return false
+        if bridge then
+            bridge.lastError = "INVENTORY_OPEN_CAPABILITY_UNAVAILABLE"
         end
+        return false
     end
 
-    SendChatMessage(command, "WHISPER", nil, botName)
-
-    if options.refreshDelay ~= nil and MultiBot.RefreshInventory then
-        MultiBot.RefreshInventory(options.refreshDelay)
-    elseif options.refresh and MultiBot.RefreshInventory then
-        MultiBot.RefreshInventory()
-    end
-
-    return true
 end
 
 -- MB_VENDOR_BUYBACK_V1_UI_BEGIN
@@ -3049,7 +2956,6 @@ function MultiBot.InitializeInventoryFrame()
         runInventoryInstantAction(pButton.getName(), "s *", {
             requiresTarget = true,
             clearActionState = true,
-            refreshDelay = 0.5,
         })
     end
 
@@ -3057,7 +2963,6 @@ function MultiBot.InitializeInventoryFrame()
         runInventoryInstantAction(pButton.getName(), "s vendor", {
             requiresTarget = true,
             clearActionState = true,
-            refresh = true,
         })
     end
 
