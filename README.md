@@ -1,295 +1,98 @@
-## mod-playerbots-portable fork
-
-This fork carries what [mod-playerbots-portable](https://github.com/Syntax555/mod-playerbots-portable) needs on top of [Wishmaster117/MultiBot-Chatless](https://github.com/Wishmaster117/MultiBot-Chatless). Work happens on `main`; every push publishes `MultiBot-Chatless-latest.zip` in the [Latest release](https://github.com/Syntax555/MultiBot-Chatless/releases/latest).
-
-Close WoW and extract the ZIP into `Interface/AddOns/` so that `Interface/AddOns/MultiBot/MultiBot.toc` exists. Replace an older `MultiBot` folder; your settings in `WTF/` are kept.
-
-Use it with the matching server from the [mod-playerbots-portable Latest release](https://github.com/Syntax555/mod-playerbots-portable/releases/latest), which provides the MultiBot Bridge.
-
-Changes on `main`:
-
-- Shows bot money in gold, silver and copper.
-- Initializes the options panel through the supported fallback and keeps saved settings.
-- Inspects bot talents through EraTalents on realms with historical Vanilla/TBC trees.
-- Toggles the paladin, priest and warrior strategies the bots actually use.
-- With a matching bridge, the combat profile selector offers automatic detection
-  from talents or a manual class profile. It updates role strategies and suitable
-  owned equipment without spending talent points.
-- Buys from merchants for the selected altbot with that bot's own gold.
-- Loads LibDataBroker before LibDBIcon.
-- Reads the bridge's spell id and skip flag, so the bot spellbook is filled.
-
-The server pins a tested commit of `main` in its `versions.lock.json`. Upstream updates are merged into `main`; the original README follows.
-
----
-
-<p align="center">
-  <img width="1024" height="1024" alt="MultiBot Chatless" src="https://github.com/user-attachments/assets/08aa1768-f5c2-49ce-9fe0-a22adb184ce7" />
-</p>
-
-<div align="center">
-
 # MultiBot Chatless
 
-### Bridge-first Playerbots control for World of Warcraft 3.3.5a
-
-<strong>MultiBot Chatless</strong> is a client addon for AzerothCore `mod-playerbots`.
-It keeps the familiar MultiBot UI while moving more bot reads and actions away from automatic chat commands and into a structured server bridge.
-
-<br>
-
-<img alt="WoW Version" src="https://img.shields.io/badge/client-WotLK%203.3.5a-lightgrey" />
-<img alt="Architecture" src="https://img.shields.io/badge/architecture-bridge--first-success" />
-<img alt="Status" src="https://img.shields.io/badge/status-mostly%20chatless-blue" />
-
-</div>
-
----
-
-## Companion Bridge Required
-
-This repository contains the **client addon**.
-
-For the bridge-first features you also need:
-
-### [`mod-multibot-bridge`](https://github.com/Wishmaster117/mod-multibot-bridge)
-
-Install the addon as:
-
-```text
-World of Warcraft/Interface/AddOns/MultiBot
-```
-
-The folder must be named `MultiBot`.
-
----
-
-# What the Addon Does
-
-MultiBot Chatless provides a UI for controlling, inspecting and managing Playerbots without flooding normal gameplay with automatic bot chat replies.
-
-The addon still supports intentional manual Playerbots commands where they are useful, but the main direction is:
-
-```text
-UI action
-  -> structured addon message
-  -> mod-multibot-bridge
-  -> validated server-side action/read
-  -> structured result
-  -> authoritative UI refresh
-```
-
-The project is currently **bridge-first / mostly chatless** rather than fully chatless. Remaining automatic chat paths are migrated only after targeted audit and runtime validation.
-
----
-
-# Main Features
-
-| Area | Current behavior |
-| --- | --- |
-| **Bot rosters** | My Bots / Altbots, Group, Guild, Friends and Favorites with online/offline presence and structured lifecycle handling. |
-| **Bot connect / disconnect** | `ALT_ROSTER_V1`, `BOT_LIFECYCLE_V1` and `BOT_TARGET_RESOLVE_V1` provide structured discovery, target resolution and lifecycle control. Offline EveryBars stay collapsed; online EveryBars expand consistently. |
-| **Bot state & strategies** | Framed bot-state reads and structured strategy mutations for migrated controls, including Warlock selectors. |
-| **Inventory** | Bag-aware exact inventory for Backpack, Bag 1..4 and Keyring, including empty slots and container filtering. |
-| **Item movement** | Whole-stack drag/drop between supported physical inventory slots through the Bridge. |
-| **Equipment** | Structured equip and unequip workflows with authoritative refresh. |
-| **Trade & item use** | Exact-item Trade, item use and item destruction through dedicated structured actions. |
-| **Vendor** | Single-item sale, bulk Sell Vendor, Buyback and Open Items bridge workflows. |
-| **Bank / Guild Bank** | Bridge-backed views and actions; exact physical BANK/GBANK deposits are implemented. |
-| **Talents** | Premade specialization apply and editable custom talent apply with server verification. |
-| **Glyphs** | Glyph display and apply-related workflows integrated with the character UI. |
-| **Professions** | Profession recipe browsing/crafting plus targeted item recipes. |
-| **Enchanting** | Dedicated Enchanting Trade Service using the native WoW Trade workflow. |
-| **Quests** | Bridge-backed quest list and structured bot quest abandon. Native quest sharing remains available. |
-| **Loot** | Structured loot profiles and exact persistent always-loot item add/remove. |
-| **Group tools** | Formation, Roll, RTI, Pull Control, Disperse and other migrated group controls. |
-| **Character information** | Bot skills, reputations, currencies/emblems, spellbook, stats and PvP stats. |
-| **Outfits** | Outfit listing and actions through the Bridge. |
-| **SelfBot** | Dedicated enable/disable, strategy and selected action support. |
-| **Localization** | Eight runtime locales: `enUS`, `enGB`, `frFR`, `esES`, `deDE`, `ruRU`, `zhCN` and `koKR`. |
-
----
-
-# Recent Milestone — Alt Roster & Bot Lifecycle
-
-The roster/lifecycle work was merged and post-merge audited on **30 August 2026**.
-
-It standardizes lifecycle behavior across:
-
-- My Bots / Altbots;
-- Group;
-- Guild;
-- Friends;
-- Favorites.
-
-User-facing behavior now follows the same rule everywhere:
-
-- **offline bot** → EveryBar collapsed;
-- **online bot** → EveryBar expanded;
-- roster-specific UI state must not leak into another roster.
-
-The companion Bridge also gained the server-side lifecycle authorization and hardening required for these flows.
-
----
-
-# Bridge Capabilities
-
-The addon negotiates feature capabilities with the Bridge before using newer paths.
-
-Important current capabilities include:
-
-```text
-STATE_FRAMING_V1
-STRATEGY_MUTATION_V1
-OUTFIT_V1
-INVENTORY_V1
-INVENTORY_EXACT_V1
-ITEM_MOVE_V1
-ITEM_EQUIP_V1
-ITEM_UNEQUIP_V1
-ITEM_TRADE_V1
-ITEM_USE_V1
-ITEM_SELL_SINGLE_V1
-VENDOR_BUYBACK_V1
-INVENTORY_BULK_SELL_V1
-INVENTORY_OPEN_V1
-ITEM_DEPOSIT_EXACT_V1
-GROUP_ROLL_V1
-ENCHANT_TRADE_V1
-CRAFT_RECIPE_TARGET_V1
-QUEST_ABANDON_V1
-LOOT_RULE_ITEM_V1
-TALENT_APPLY_V1
-TALENT_SPEC_APPLY_V1
-SELF_BOT_V1
-SELF_STRATEGY_V1
-SELF_ACTION_V1
-ALT_ROSTER_V1
-BOT_LIFECYCLE_V1
-BOT_TARGET_RESOLVE_V1
-```
-
-The exact protocol is an implementation detail of the addon and Bridge. The normal user experience should remain UI-driven.
-
----
-
-# Compatibility & Legacy Chat
-
-The addon deliberately keeps some manual Playerbots commands for diagnostics and explicit gameplay use.
-
-Automatic compatibility fallback is disabled by default:
-
-```lua
-MultiBot.allowLegacyChatFallback = false
-```
-
-When a migrated Bridge feature is available, the addon should prefer the structured path and wait for authoritative server state instead of pretending an action succeeded locally.
-
----
-
-# Installation
-
-1. Install and configure AzerothCore with `mod-playerbots`.
-2. Install [`mod-multibot-bridge`](https://github.com/Wishmaster117/mod-multibot-bridge) on the server and rebuild AzerothCore.
-3. Copy or clone this repository as:
-
-```text
-World of Warcraft/Interface/AddOns/MultiBot
-```
-
-4. Start the server and log into the WoW 3.3.5a client.
-5. Confirm the addon and Bridge handshake successfully.
-
----
-
-# Usage
-
-Open MultiBot with any of these slash commands:
-
-```text
-/multibot
-/mbot
-/mb
-```
-
-You can also open the addon from its minimap button.
-
-When the Bridge is available, supported UI actions automatically use the structured bridge-first path; you do not need to type protocol commands manually.
-
----
-
-# Current Status
-
-The major read paths and a large part of the action surface are now bridge-first and runtime validated.
-
-The project is **not declared fully chatless yet**. Remaining `SendChatMessage` paths are handled family by family so that useful manual commands are not removed accidentally and legacy compatibility is not broken without testing.
-
-The next normal roadmap item is a targeted audit of collective:
-
-```text
-follow
-attack
-stay
-```
-
-No generic arbitrary Playerbots command executor is planned.
-
-Detailed development history, audits, deferred work and technical residuals are tracked in the project documentation.
-
----
-
-# Documentation
-
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — technical source of truth, completed milestones, audit references, next work and deferred backlog.
-- [`docs/DEBUG_RUNBOOK.md`](docs/DEBUG_RUNBOOK.md) — in-game debug commands, observability guidance and bug-report procedure.
-
----
-
-# Deferred / Lower-Priority Work
-
-The active roadmap currently keeps these items outside the next normal feature batch:
-
-- exact BANK withdrawal (P3B);
-- exact Guild Bank withdrawal (P3C);
-- dedicated localized `SOURCE_STALE` UI text;
-- moving/re-equipping the equipped bag objects themselves (`BAG_MOVE`);
-- `SELL_GREY` follow-up;
-- final real Firestone/Spellstone `TEMP_ENCHANTMENT_SLOT` revalidation;
-- remaining Warlock LuaLint warnings;
-- selected lifecycle/idempotence hardening for older pending-command flows.
-
----
-
-# Credits
-
-MultiBot Chatless builds on the AzerothCore and `mod-playerbots` ecosystem.
-
-Special thanks to **Macx-Lio** for the original MultiBot Module that this project builds upon.
-
-The project also retains attribution for the external **Jellypowered** bridge work that was audited and selectively adapted during the chatless migration. Details and commit references are preserved in the project roadmap.
-
----
-
-# Troubleshooting
-
-### The addon does not load
-
-Confirm the folder is named exactly:
-
-```text
-MultiBot
-```
-
-and is located under:
-
-```text
-World of Warcraft/Interface/AddOns/
-```
-
-### Bridge features are unavailable
-
-Confirm `mod-multibot-bridge` is installed, configured, compiled and loaded by the same AzerothCore server used by the client.
-
-### I still see some Playerbots chat
-
-That does not automatically mean the Bridge is broken. Manual commands and a small number of intentionally retained or not-yet-migrated paths still exist while the project remains **mostly chatless**.
+## mod-playerbots-portable fork
+
+A bot-control interface for **WoW 3.3.5a, build 12340** (Interface `30300`),
+maintained for
+[mod-playerbots-portable](https://github.com/Syntax555/mod-playerbots-portable).
+This fork builds on
+[Wishmaster117/MultiBot-Chatless](https://github.com/Wishmaster117/MultiBot-Chatless)
+and uses the matching server's
+[MultiBot Bridge](https://github.com/Syntax555/mod-multibot-bridge) for bot data
+and validated actions.
+
+## Install or update
+
+1. Download
+   [MultiBot-Chatless-latest.zip](https://github.com/Syntax555/MultiBot-Chatless/releases/latest/download/MultiBot-Chatless-latest.zip)
+   from this fork's [Latest release](https://github.com/Syntax555/MultiBot-Chatless/releases/latest).
+2. Close WoW completely. Back up the existing `Interface/AddOns/MultiBot/`
+   folder, then replace it with the ZIP's `MultiBot/` folder. The resulting
+   path must be `Interface/AddOns/MultiBot/MultiBot.toc`.
+3. Keep `WTF/`, including account and character `SavedVariables`, to preserve
+   settings. Enable MultiBot on the character-selection AddOns screen.
+4. Use the matching
+   [portable server](https://github.com/Syntax555/mod-playerbots-portable/releases/latest).
+   For historical talents, also install its complete
+   [EraTalents client pack](https://github.com/Syntax555/mod-playerbots-portable/blob/main/docs/era-talents.md#install-the-matching-client-files),
+   including the matching MPQ.
+
+Open the interface with `/mb`, `/mbot`, `/multibot` or its minimap button;
+open settings with `/mbopt`. A repository source ZIP needs its containing
+folder renamed to `MultiBot`; the Latest package already has the correct layout.
+
+## Supported behavior
+
+- Manage bot rosters, group controls, inventories, equipment, quests and other
+  companion views through the bridge-backed interface. Available actions depend
+  on server capabilities and permissions.
+- Open historical bot talents through EraTalents. With the matching DragonUI
+  talent module, the view appears in DragonUI; otherwise EraTalents uses the
+  Blizzard inspect window. Controlled group altbots can spend their own earned
+  talent points; other characters remain read-only. Normal inspect access and
+  range still apply.
+- Select **Automatic** or a manual combat profile for controlled altbots and
+  active SelfBots. The matching server applies class strategies and checks
+  suitable gear already in the bot's bags. Profile selection does not spend
+  talent points or grant gear, abilities or gold. See
+  [combat profiles](https://github.com/Syntax555/mod-playerbots-portable/blob/main/docs/combat-profiles.md).
+- Buy merchant items for the selected altbot with its own gold: open that bot's
+  inventory, select **Buy**, then click the merchant item. The bot must be able
+  to interact with the vendor. Changing bots, leaving Buy mode or closing the
+  inventory cancels pending purchase confirmations.
+- Display bot money as gold, silver and copper, read the bridge's spellbook
+  entries, preserve saved options and use the server's supported role strategies.
+
+The addon uses structured bridge messages for many reads and actions; some
+intentional Playerbots chat commands remain. Automatic legacy chat fallback is
+disabled by default. This fork is intended for the matching server and bridge;
+an unrelated bridge or server may lack features or apply different rules.
+Historical trees require matching EraTalents files. The native-tree realm mode
+keeps MultiBot's own talent window.
+
+Source fixtures and the release workflow check selected behavior and Lua 5.1
+syntax. They do not establish complete in-game coverage of every control or
+addon combination. For errors, record the action, first Lua error, installed
+`MultiBot/SOURCE_REVISION.txt`, server revision and enabled addons; see
+[client diagnostics](https://github.com/Syntax555/mod-playerbots-portable/blob/main/docs/addons.md#blocked-interactions-and-lua-errors).
+
+## Source and contributions
+
+Work on this fork's `main` branch. Its
+[Latest workflow](https://github.com/Syntax555/MultiBot-Chatless/blob/main/.github/workflows/latest.yml)
+checks and packages the addon before replacing the rolling download. Update
+from this fork to retain its server integrations. The server's
+[dependency manifest](https://github.com/Syntax555/mod-playerbots-portable/blob/main/versions.lock.json)
+records its exact tested fork commit and imported upstream revision; Latest may
+be newer than that pin.
+
+[Report a fork issue](https://github.com/Syntax555/MultiBot-Chatless/issues),
+read [AGENTS.md](https://github.com/Syntax555/MultiBot-Chatless/blob/main/AGENTS.md)
+and follow the server's
+[contribution guide](https://github.com/Syntax555/mod-playerbots-portable/blob/main/CONTRIBUTING.md)
+for integration changes. General upstream controls and technical documentation
+are described in the
+[imported upstream README](https://github.com/Wishmaster117/MultiBot-Chatless/blob/80148dff3f3a25a56d38dba0ecbd4f165b8c1d3f/README.md);
+its downloads and server setup refer to the original project.
+
+## Credits and license
+
+The upstream README credits **Macx-Lio** for the original MultiBot module;
+the addon TOC names **Nico Löbbert** as author. **Wishmaster117 (TheWarlock)**
+maintains MultiBot Chatless, building on AzerothCore and Playerbots. Attribution for the selectively adapted **Jellypowered** bridge
+work is preserved in the
+[imported upstream roadmap](https://github.com/Wishmaster117/MultiBot-Chatless/blob/80148dff3f3a25a56d38dba0ecbd4f165b8c1d3f/docs/ROADMAP.md).
+
+The repository includes the
+[GNU General Public License version 3 text](https://github.com/Syntax555/MultiBot-Chatless/blob/main/LICENSE).
+Bundled libraries retain their own license and copyright notices.
