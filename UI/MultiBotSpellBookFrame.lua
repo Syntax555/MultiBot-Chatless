@@ -134,6 +134,7 @@ end
 
 local function createSpellSlotButton(parent, x, y)
 	local button = CreateFrame("Button", nil, parent)
+	button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 	button:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
 	button:SetWidth(getSpellBookUI().ICON_SIZE or 22)
 	button:SetHeight(getSpellBookUI().ICON_SIZE or 22)
