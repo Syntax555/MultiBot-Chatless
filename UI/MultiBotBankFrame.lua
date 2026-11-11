@@ -493,12 +493,23 @@ function MultiBot.RefreshBotGuildBank(botName, delay)
     return true
 end
 
+local function isBankViewCurrent(botName, mode)
+    local frame = MultiBot.bankFrame
+    return frame and frame.IsShown and frame:IsShown()
+        and frame.mode == mode
+        and string.lower(tostring(frame.botName or "")) == string.lower(tostring(botName or ""))
+end
+
 function MultiBot.OnBridgeBankItems(botName, lines, errorReason)
-    ensureBankFrame():setItems(botName, lines or {}, errorReason, "bank")
+    if isBankViewCurrent(botName, "bank") then
+        MultiBot.bankFrame:setItems(botName, lines or {}, errorReason, "bank")
+    end
 end
 
 function MultiBot.OnBridgeGuildBankItems(botName, lines, errorReason, token, guildBankRights)
-    ensureBankFrame():setItems(botName, lines or {}, errorReason, "gbank", guildBankRights)
+    if isBankViewCurrent(botName, "gbank") then
+        MultiBot.bankFrame:setItems(botName, lines or {}, errorReason, "gbank", guildBankRights)
+    end
 end
 
 function MultiBot.InitializeBankFrame()
