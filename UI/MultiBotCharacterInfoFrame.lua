@@ -1522,15 +1522,24 @@ function MultiBot.OpenCharacterInfo(botName)
     return requested
 end
 
+local function isCharacterViewCurrent(botName)
+    local frame = MultiBot.characterInfoFrame
+    return frame and frame:IsShown()
+        and string.lower(frame.botName or "") == string.lower(botName or "")
+end
+
 function MultiBot.OnBridgeBotSkills(botName, skills)
+    if not isCharacterViewCurrent(botName) then return end
     ensureCharacterFrame():setSkills(botName, skills or {})
 end
 
 function MultiBot.OnBridgeBotReputations(botName, reputations)
+    if not isCharacterViewCurrent(botName) then return end
     ensureCharacterFrame():setReputations(botName, reputations or {})
 end
 
 function MultiBot.OnBridgeBotEmblems(botName, emblems, _token, money)
+    if not isCharacterViewCurrent(botName) then return end
     ensureCharacterFrame():setEmblems(botName, emblems or {}, money)
 end
 
