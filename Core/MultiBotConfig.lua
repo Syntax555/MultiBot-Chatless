@@ -61,13 +61,13 @@ end
 
 local ensureTableField
 
-local function migrateLegacyConfigIntoProfile(profile)
+local function migrateLegacyConfigIntoProfile(profile, importLegacy)
   if type(profile) ~= "table" then return end
 
   local timers = ensureTableField(profile, "timers")
   for key, defaultValue in pairs(DEFAULTS) do
     local legacyValue = getLegacyTimerValue(key)
-    if type(legacyValue) == "number" and legacyValue > 0 then
+    if importLegacy and type(legacyValue) == "number" and legacyValue > 0 then
       timers[key] = legacyValue
     elseif type(timers[key]) ~= "number" or timers[key] <= 0 then
       timers[key] = defaultValue
@@ -77,7 +77,7 @@ local function migrateLegacyConfigIntoProfile(profile)
   local throttle = ensureTableField(profile, "throttle")
   for key, defaultValue in pairs(THROTTLE_DEFAULTS) do
     local legacyValue = getLegacyThrottleValue(key)
-    if type(legacyValue) == "number" and legacyValue > 0 then
+    if importLegacy and type(legacyValue) == "number" and legacyValue > 0 then
       throttle[key] = legacyValue
     elseif type(throttle[key]) ~= "number" or throttle[key] <= 0 then
       throttle[key] = defaultValue
@@ -131,11 +131,13 @@ function MultiBot.Config_InitDB()
 
   MultiBotDB = MultiBotDB or {}
   local db = aceDB:New("MultiBotDB", DB_DEFAULTS, true)
+  -- AceDB fills defaults lazily, so inspect the saved profile before accessing it.
+  local importLegacy = db and not db.profiles[db.keys.profile]
   if not db or not db.profile then
     return
   end
 
-  migrateLegacyConfigIntoProfile(db.profile)
+  migrateLegacyConfigIntoProfile(db.profile, importLegacy)
   MultiBot.db = db
 end
 
